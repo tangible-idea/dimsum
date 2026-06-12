@@ -1,0 +1,447 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="theme-color" content="#f7c873">
+<title>딤섬 타워</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body {
+    width: 100%; height: 100%;
+    overflow: hidden;
+    touch-action: none;
+    overscroll-behavior: none;
+    background: #f7c873;
+    -webkit-user-select: none; user-select: none;
+    -webkit-tap-highlight-color: transparent;
+  }
+  canvas { display: block; width: 100vw; height: 100vh; }
+</style>
+</head>
+<body>
+<canvas id="game"></canvas>
+<script>
+(() => {
+'use strict';
+
+const canvas = document.getElementById('game');
+const ctx = canvas.getContext('2d');
+
+let W = 0, H = 0, DPR = 1;
+function resize() {
+  DPR = Math.min(window.devicePixelRatio || 1, 2);
+  W = window.innerWidth;
+  H = window.innerHeight;
+  canvas.width = W * DPR;
+  canvas.height = H * DPR;
+  ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
+}
+window.addEventListener('resize', resize);
+resize();
+
+// ---- 게임 상수 ----
+const DUMP_W = () => Math.min(W * 0.30, 130);   // 딤섬 폭
+const DUMP_H = () => DUMP_W() * 0.62;            // 딤섬 높이
+const GRAVITY = 2600;                            // px/s^2
+const PERFECT_PX = 9;                            // 퍼펙트 판정 오차
+const LAND_RATIO = 0.48;                         // 이 비율 이상 겹쳐야 안착
+
+// ---- 상태 ----
+const ST_TITLE = 0, ST_AIM = 1, ST_DROP = 2, ST_TOPPLE = 3, ST_OVER = 4;
+let state = ST_TITLE;
+
+let stack = [];        // {x, y(바닥 기준 월드 높이), squash, hue}
+let cur = null;        // 현재 딤섬 {x, y, vy, vx, rot, vrot, hue}
+let score = 0;
+let best = +(localStorage.getItem('dimsum-best') || 0);
+let combo = 0;
+let swingT = 0;
+let swingSpeed = 1.6;
+let swingAmp = 0;
+let cameraY = 0;       // 월드 높이 → 화면 매핑용
+let camTarget = 0;
+let shake = 0;
+let overDelay = 0;
+let floaters = [];     // 떠오르는 텍스트
+let steams = [];       // 김 파티클
+let time = 0;
+
+function topOfStack() { return stack.length ? stack[stack.length - 1] : null; }
+function stackTopY() {
+  const t = topOfStack();
+  return t ? t.y + DUMP_H() : baseTopY();
+}
+function baseTopY() { return DUMP_H() * 1.1; } // 찜기 윗면 월드 높이
+
+// 월드 높이(위로 +) → 화면 y
+function sy(worldY) { return H * 0.78 - (worldY - cameraY); }
+
+function spawn() {
+  swingT = Math.random() * Math.PI * 2;
+  swingAmp = Math.min(W * 0.36, W / 2 - DUMP_W() * 0.55);
+  cur = {
+    x: W / 2,
+    y: stackTopY() + DUMP_H() * 2.6,
+    vy: 0, vx: 0, rot: 0, vrot: 0,
+    hue: Math.floor(Math.random() * 5),
+  };
+  state = ST_AIM;
+}
+
+function startGame() {
+  stack = [];
+  score = 0;
+  combo = 0;
+  cameraY = 0; camTarget = 0;
+  swingSpeed = 1.6;
+  floaters = [];
+  spawn();
+}
+
+function drop() {
+  state = ST_DROP;
+  cur.vy = -300; // 살짝 빠르게 시작
+}
+
+function land() {
+  const top = topOfStack();
+  const targetX = top ? top.x : W / 2;
+  const dx = cur.x - targetX;
+  const overlap = DUMP_W() - Math.abs(dx);
+
+  if (Math.abs(dx) <= PERFECT_PX) {
+    // 퍼펙트
+    cur.x = targetX;
+    combo++;
+    score += 1 + combo;
+    addFloater(cur.x, stackTopY(), combo > 1 ? `퍼펙트 x${combo}! +${1 + combo}` : `퍼펙트! +${1 + combo}`, '#ff5d8f');
+    shake = 4;
+  } else if (overlap >= DUMP_W() * LAND_RATIO) {
+    // 안착
+    combo = 0;
+    score += 1;
+    shake = 2;
+  } else {
+    // 실패 → 굴러떨어짐
+    combo = 0;
+    state = ST_TOPPLE;
+    cur.vx = dx > 0 ? 260 : -260;
+    cur.vrot = dx > 0 ? 5 : -5;
+    overDelay = 1.1;
+    shake = 8;
+    return;
+  }
+
+  stack.push({ x: cur.x, y: stackTopY(), squash: 1, hue: cur.hue });
+  burstSteam(cur.x, stackTopY() + DUMP_H());
+  camTarget = Math.max(0, stackTopY() - H * 0.32);
+  swingSpeed = Math.min(3.4, 1.6 + score * 0.045);
+  if (score > best) { best = score; localStorage.setItem('dimsum-best', best); }
+  spawn();
+}
+
+function gameOver() {
+  state = ST_OVER;
+}
+
+// ---- 이펙트 ----
+function addFloater(x, y, text, color) {
+  floaters.push({ x, y, text, color, life: 1 });
+}
+function burstSteam(x, y) {
+  for (let i = 0; i < 6; i++) {
+    steams.push({
+      x: x + (Math.random() - 0.5) * DUMP_W() * 0.8,
+      y, r: 4 + Math.random() * 6,
+      vy: 30 + Math.random() * 40,
+      vx: (Math.random() - 0.5) * 30,
+      life: 1,
+    });
+  }
+}
+
+// ---- 입력 ----
+function press(e) {
+  e.preventDefault();
+  if (state === ST_TITLE) startGame();
+  else if (state === ST_AIM) drop();
+  else if (state === ST_OVER) startGame();
+}
+canvas.addEventListener('pointerdown', press);
+window.addEventListener('keydown', (e) => { if (e.code === 'Space') press(e); });
+
+// ---- 업데이트 ----
+let last = performance.now();
+function update(dt) {
+  time += dt;
+
+  // 카메라
+  cameraY += (camTarget - cameraY) * Math.min(1, dt * 5);
+  if (shake > 0) shake = Math.max(0, shake - dt * 30);
+
+  // 김 파티클 (찜기에서 솔솔)
+  if (Math.random() < dt * 3 && stack.length >= 0) {
+    steams.push({
+      x: W / 2 + (Math.random() - 0.5) * DUMP_W(),
+      y: stackTopY(), r: 5 + Math.random() * 8,
+      vy: 25 + Math.random() * 30, vx: (Math.random() - 0.5) * 15,
+      life: 1,
+    });
+  }
+  for (const s of steams) {
+    s.y += s.vy * dt; s.x += s.vx * dt;
+    s.r += dt * 8; s.life -= dt * 0.5;
+  }
+  steams = steams.filter(s => s.life > 0);
+
+  for (const f of floaters) { f.y += dt * 60; f.life -= dt * 1.2; }
+  floaters = floaters.filter(f => f.life > 0);
+
+  for (const d of stack) d.squash += (1 - d.squash) * Math.min(1, dt * 10);
+
+  if (state === ST_AIM && cur) {
+    swingT += dt * swingSpeed;
+    cur.x = W / 2 + Math.sin(swingT) * swingAmp;
+    cur.y = stackTopY() + DUMP_H() * 2.6;
+  } else if (state === ST_DROP && cur) {
+    cur.vy += GRAVITY * dt;
+    cur.y -= cur.vy * dt;
+    if (cur.y <= stackTopY()) {
+      cur.y = stackTopY();
+      land();
+    }
+  } else if (state === ST_TOPPLE && cur) {
+    cur.vy += GRAVITY * dt;
+    cur.y -= cur.vy * dt;
+    cur.x += cur.vx * dt;
+    cur.rot += cur.vrot * dt;
+    overDelay -= dt;
+    if (overDelay <= 0) gameOver();
+  }
+}
+
+// ---- 그리기 ----
+const SKINS = [
+  { body: '#fff6e9', shade: '#f3ddc0' },  // 만두피
+  { body: '#ffe9ef', shade: '#f5c6d3' },  // 새우딤섬 핑크
+  { body: '#eaf6e2', shade: '#cfe6bd' },  // 부추 연두
+  { body: '#fff3d6', shade: '#f0dca8' },  // 노른자 노랑
+  { body: '#f0eaff', shade: '#d8cdf2' },  // 타로 보라
+];
+
+function drawDumpling(x, screenY, hue, squash, rot) {
+  const w = DUMP_W(), h = DUMP_H();
+  const sk = SKINS[hue % SKINS.length];
+  ctx.save();
+  ctx.translate(x, screenY);
+  if (rot) ctx.rotate(rot);
+  ctx.scale(1 + (1 - squash) * 0.45, squash);
+
+  // 그림자(자체)
+  ctx.fillStyle = sk.shade;
+  ctx.beginPath();
+  ctx.ellipse(0, -h * 0.32, w * 0.5, h * 0.42, 0, 0, Math.PI * 2);
+  ctx.fill();
+
+  // 몸통
+  ctx.fillStyle = sk.body;
+  ctx.beginPath();
+  ctx.ellipse(0, -h * 0.40, w * 0.48, h * 0.40, 0, 0, Math.PI * 2);
+  ctx.fill();
+
+  // 주름 (꼭지)
+  ctx.strokeStyle = sk.shade;
+  ctx.lineWidth = Math.max(2, w * 0.022);
+  ctx.lineCap = 'round';
+  for (let i = -2; i <= 2; i++) {
+    ctx.beginPath();
+    ctx.moveTo(i * w * 0.07, -h * 0.74);
+    ctx.quadraticCurveTo(i * w * 0.16, -h * 0.55, i * w * 0.22, -h * 0.38);
+    ctx.stroke();
+  }
+  // 꼭지
+  ctx.fillStyle = sk.shade;
+  ctx.beginPath();
+  ctx.ellipse(0, -h * 0.76, w * 0.09, h * 0.07, 0, 0, Math.PI * 2);
+  ctx.fill();
+
+  // 얼굴
+  ctx.fillStyle = '#5b4636';
+  ctx.beginPath();
+  ctx.arc(-w * 0.14, -h * 0.36, w * 0.025, 0, Math.PI * 2);
+  ctx.arc(w * 0.14, -h * 0.36, w * 0.025, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.strokeStyle = '#5b4636';
+  ctx.lineWidth = Math.max(1.5, w * 0.018);
+  ctx.beginPath();
+  ctx.arc(0, -h * 0.32, w * 0.05, 0.15 * Math.PI, 0.85 * Math.PI);
+  ctx.stroke();
+  // 볼터치
+  ctx.fillStyle = 'rgba(255,120,140,0.35)';
+  ctx.beginPath();
+  ctx.ellipse(-w * 0.24, -h * 0.30, w * 0.05, h * 0.04, 0, 0, Math.PI * 2);
+  ctx.ellipse(w * 0.24, -h * 0.30, w * 0.05, h * 0.04, 0, 0, Math.PI * 2);
+  ctx.fill();
+
+  ctx.restore();
+}
+
+function drawSteamer(x, screenY) {
+  const w = DUMP_W() * 1.7, h = DUMP_H() * 1.1;
+  ctx.save();
+  ctx.translate(x, screenY);
+  // 본체
+  ctx.fillStyle = '#c98c4a';
+  roundRect(-w / 2, -h, w, h, 10);
+  ctx.fill();
+  ctx.fillStyle = '#b87b3b';
+  roundRect(-w / 2, -h, w, h * 0.28, 10);
+  ctx.fill();
+  // 테두리 줄
+  ctx.strokeStyle = '#a26a30';
+  ctx.lineWidth = 3;
+  ctx.beginPath();
+  ctx.moveTo(-w / 2 + 6, -h * 0.5); ctx.lineTo(w / 2 - 6, -h * 0.5);
+  ctx.moveTo(-w / 2 + 6, -h * 0.22); ctx.lineTo(w / 2 - 6, -h * 0.22);
+  ctx.stroke();
+  ctx.restore();
+}
+
+function roundRect(x, y, w, h, r) {
+  ctx.beginPath();
+  ctx.moveTo(x + r, y);
+  ctx.arcTo(x + w, y, x + w, y + h, r);
+  ctx.arcTo(x + w, y + h, x, y + h, r);
+  ctx.arcTo(x, y + h, x, y, r);
+  ctx.arcTo(x, y, x + w, y, r);
+  ctx.closePath();
+}
+
+function draw() {
+  // 배경
+  const g = ctx.createLinearGradient(0, 0, 0, H);
+  g.addColorStop(0, '#ffd98e');
+  g.addColorStop(0.6, '#f7c873');
+  g.addColorStop(1, '#eeae5a');
+  ctx.fillStyle = g;
+  ctx.fillRect(0, 0, W, H);
+
+  // 배경 장식 구름
+  ctx.fillStyle = 'rgba(255,255,255,0.25)';
+  for (let i = 0; i < 4; i++) {
+    const cx = (i * 0.27 + 0.1) * W + Math.sin(time * 0.1 + i * 2) * 20;
+    const cy = H * (0.12 + i * 0.18) + (cameraY * 0.15) % H * 0;
+    ctx.beginPath();
+    ctx.ellipse(cx, cy, 60, 18, 0, 0, Math.PI * 2);
+    ctx.fill();
+  }
+
+  ctx.save();
+  if (shake > 0) ctx.translate((Math.random() - 0.5) * shake, (Math.random() - 0.5) * shake);
+
+  // 김
+  for (const s of steams) {
+    ctx.fillStyle = `rgba(255,255,255,${0.35 * s.life})`;
+    ctx.beginPath();
+    ctx.arc(s.x, sy(s.y), s.r, 0, Math.PI * 2);
+    ctx.fill();
+  }
+
+  // 찜기 + 스택
+  drawSteamer(W / 2, sy(0) );
+  for (const d of stack) drawDumpling(d.x, sy(d.y), d.hue, d.squash, 0);
+
+  // 현재 딤섬
+  if (cur && state !== ST_OVER) {
+    if (state === ST_AIM) {
+      // 낙하 가이드 점선
+      ctx.strokeStyle = 'rgba(255,255,255,0.5)';
+      ctx.lineWidth = 2;
+      ctx.setLineDash([6, 8]);
+      ctx.beginPath();
+      ctx.moveTo(cur.x, sy(cur.y) + 4);
+      ctx.lineTo(cur.x, sy(stackTopY()));
+      ctx.stroke();
+      ctx.setLineDash([]);
+    }
+    drawDumpling(cur.x, sy(cur.y), cur.hue, 1, cur.rot || 0);
+  }
+
+  // 떠오르는 텍스트
+  for (const f of floaters) {
+    ctx.globalAlpha = Math.max(0, f.life);
+    ctx.fillStyle = f.color;
+    ctx.font = `bold ${Math.round(W * 0.05)}px -apple-system, sans-serif`;
+    ctx.textAlign = 'center';
+    ctx.fillText(f.text, f.x, sy(f.y) - 30);
+    ctx.globalAlpha = 1;
+  }
+
+  ctx.restore();
+
+  // ---- UI ----
+  ctx.textAlign = 'center';
+  if (state === ST_TITLE) {
+    overlay();
+    ctx.fillStyle = '#fff';
+    ctx.font = `bold ${Math.round(W * 0.12)}px -apple-system, sans-serif`;
+    ctx.fillText('🥟 딤섬 타워', W / 2, H * 0.36);
+    ctx.font = `${Math.round(W * 0.045)}px -apple-system, sans-serif`;
+    ctx.fillText('탭해서 딤섬을 떨어뜨려 쌓아요', W / 2, H * 0.44);
+    pulseText('탭해서 시작!', H * 0.6);
+    if (best > 0) {
+      ctx.fillStyle = 'rgba(255,255,255,0.8)';
+      ctx.font = `${Math.round(W * 0.04)}px -apple-system, sans-serif`;
+      ctx.fillText(`최고 기록: ${best}`, W / 2, H * 0.68);
+    }
+  } else if (state === ST_OVER) {
+    overlay();
+    ctx.fillStyle = '#fff';
+    ctx.font = `bold ${Math.round(W * 0.1)}px -apple-system, sans-serif`;
+    ctx.fillText('게임 오버!', W / 2, H * 0.34);
+    ctx.font = `bold ${Math.round(W * 0.14)}px -apple-system, sans-serif`;
+    ctx.fillText(`${score}`, W / 2, H * 0.46);
+    ctx.font = `${Math.round(W * 0.045)}px -apple-system, sans-serif`;
+    ctx.fillText(score >= best && score > 0 ? '🎉 신기록!' : `최고 기록: ${best}`, W / 2, H * 0.53);
+    pulseText('탭해서 다시 시작', H * 0.66);
+  } else {
+    // 점수
+    ctx.fillStyle = '#fff';
+    ctx.strokeStyle = 'rgba(0,0,0,0.15)';
+    ctx.lineWidth = 6;
+    ctx.font = `bold ${Math.round(W * 0.13)}px -apple-system, sans-serif`;
+    const sTop = (window.visualViewport ? 0 : 0) + H * 0.1;
+    ctx.strokeText(score, W / 2, sTop);
+    ctx.fillText(score, W / 2, sTop);
+    ctx.font = `${Math.round(W * 0.035)}px -apple-system, sans-serif`;
+    ctx.fillStyle = 'rgba(255,255,255,0.85)';
+    ctx.fillText(`최고 ${best}`, W / 2, sTop + W * 0.06);
+  }
+}
+
+function overlay() {
+  ctx.fillStyle = 'rgba(80,40,10,0.45)';
+  ctx.fillRect(0, 0, W, H);
+}
+function pulseText(text, y) {
+  const a = 0.6 + 0.4 * Math.sin(time * 4);
+  ctx.fillStyle = `rgba(255,255,255,${a})`;
+  ctx.font = `bold ${Math.round(W * 0.055)}px -apple-system, sans-serif`;
+  ctx.fillText(text, W / 2, y);
+}
+
+function loop(now) {
+  const dt = Math.min(0.033, (now - last) / 1000);
+  last = now;
+  update(dt);
+  draw();
+  requestAnimationFrame(loop);
+}
+requestAnimationFrame(loop);
+
+})();
+</script>
+</body>
+</html>
