@@ -256,11 +256,24 @@ const stage = document.getElementById('stage');
 let CW = 0, CH = 0, DPR = Math.max(1, Math.min(2, window.devicePixelRatio || 1));
 
 function resizeCanvas() {
-  CW = stage.clientWidth; CH = stage.clientHeight;
-  canvas.width = CW * DPR; canvas.height = CH * DPR;
+  DPR = Math.max(1, Math.min(2, window.devicePixelRatio || 1));
+  const w = stage.clientWidth, h = stage.clientHeight;
+  if (w <= 0 || h <= 0) return; // 레이아웃 미정 시 스킵
+  CW = w; CH = h;
+  // 표시 크기와 동일한 비율로 백버퍼 설정(세로 찌그러짐 방지)
+  canvas.width = Math.round(CW * DPR);
+  canvas.height = Math.round(CH * DPR);
   ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
 }
 window.addEventListener('resize', resizeCanvas);
+window.addEventListener('orientationchange', resizeCanvas);
+if (window.visualViewport) {
+  window.visualViewport.addEventListener('resize', resizeCanvas);
+}
+// 실제 폰의 주소창 노출/숨김 등으로 stage 크기가 바뀔 때마다 캔버스 재동기화
+if (window.ResizeObserver) {
+  new ResizeObserver(resizeCanvas).observe(stage);
+}
 
 let squash = 1;
 let floaters = [];
