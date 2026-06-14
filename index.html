@@ -59,17 +59,13 @@
 
   .combo { position: absolute; bottom: 16px; left: 50%; transform: translateX(-50%); background: rgba(0,0,0,.3); border: 1px solid rgba(255,140,60,.5); color: #ffb37a; padding: 6px 14px; border-radius: 99px; font-size: 13px; font-weight: 700; }
 
-  .shop { flex: 0 0 340px; max-width: 42vw; background: var(--panel); border-left: 1px solid rgba(255,255,255,.08); display: flex; flex-direction: column; }
+  .shop { flex: 0 0 340px; max-width: 42vw; background: var(--panel); border-left: 1px solid rgba(255,255,255,.08); display: flex; flex-direction: column; min-height: 0; }
   .shopHead { display: flex; align-items: center; justify-content: space-between; padding: 12px 14px; font-weight: 800; color: var(--gold); font-size: 18px; border-bottom: 1px solid rgba(255,255,255,.08); }
   .tabs { display: flex; flex-wrap: wrap; gap: 4px; padding: 8px; }
   .tab { flex: 1 1 auto; padding: 7px 6px; border-radius: 8px; background: transparent; color: var(--muted); border: none; font-size: 13px; font-weight: 700; cursor: pointer; }
   .tab.active { background: var(--panel2); color: #fff; box-shadow: inset 0 0 0 1px rgba(255,210,74,.5); }
 
-  .buymodes { display: flex; gap: 6px; padding: 0 10px 8px; }
-  .bm { flex: 1; padding: 8px; border-radius: 8px; border: 1px solid rgba(255,210,74,.35); background: transparent; color: var(--gold-soft); font-weight: 800; cursor: pointer; font-size: 13px; }
-  .bm.active { background: var(--gold); color: #2a1d00; border-color: var(--gold); }
-
-  .items { flex: 1 1 auto; overflow-y: auto; padding: 0 10px 12px; }
+  .items { flex: 1 1 auto; min-height: 0; overflow-y: auto; -webkit-overflow-scrolling: touch; overscroll-behavior: contain; touch-action: pan-y; padding: 0 10px 12px; }
   .item { display: flex; gap: 10px; align-items: center; padding: 11px; border-radius: 12px; background: var(--panel2); margin-bottom: 8px; border: 1px solid rgba(255,255,255,.06); cursor: pointer; transition: transform .08s, filter .1s; }
   .item:active { transform: scale(.985); }
   .item.locked { opacity: .55; }
@@ -116,7 +112,6 @@
       <aside class="shop">
         <div class="shopHead"><span>★ 상점 ★</span><span class="shopIcons">⚙️</span></div>
         <div class="tabs" id="tabs"></div>
-        <div class="buymodes" id="buyModes"></div>
         <div class="items" id="items"></div>
         <div class="stats" id="stats"></div>
       </aside>
@@ -157,7 +152,6 @@ let S = {
   lastSave: Date.now(),
 };
 
-let buyMode = 1;       // 1 | 10 | 'MAX'
 let activeTab = 'friends';
 
 // ====== 유틸 ======
@@ -423,7 +417,6 @@ function popCoins() { coinsEl.classList.remove('pop'); void coinsEl.offsetWidth;
 
 // ====== 상점 UI ======
 const tabsEl = document.getElementById('tabs');
-const buyModesEl = document.getElementById('buyModes');
 const itemsEl = document.getElementById('items');
 const statsEl = document.getElementById('stats');
 
@@ -444,18 +437,6 @@ function buildTabs() {
     b.textContent = tb.label;
     b.onclick = () => { activeTab = tb.id; buildTabs(); buildItems(); };
     tabsEl.appendChild(b);
-  });
-  buyModesEl.style.display = activeTab === 'friends' ? 'flex' : 'none';
-}
-
-function buildBuyModes() {
-  buyModesEl.innerHTML = '';
-  [['x1', 1], ['x10', 10], ['MAX', 'MAX']].forEach(([label, val]) => {
-    const b = document.createElement('button');
-    b.className = 'bm' + (buyMode === val ? ' active' : '');
-    b.textContent = label;
-    b.onclick = () => { buyMode = val; buildBuyModes(); refreshItems(); };
-    buyModesEl.appendChild(b);
   });
 }
 
@@ -504,16 +485,13 @@ function refreshItems() {
   for (const r of itemRefs) {
     if (r.type === 'gen') {
       const owned = S.gens[r.i];
-      const k = buyMode === 'MAX' ? Math.max(1, maxBuy(r.i)) : buyMode;
-      const cost = costOf(r.i, buyMode === 'MAX' ? Math.max(1, maxBuy(r.i)) : k);
-      const afford = maxBuy(r.i) >= (buyMode === 'MAX' ? 1 : k) && (buyMode !== 'MAX' || maxBuy(r.i) >= 1);
+      const cost = genCost(r.i, owned);
       r.cnt.textContent = owned;
-      const buyN = buyMode === 'MAX' ? maxBuy(r.i) : k;
-      r.cost.textContent = `🪙 ${fmt(cost)}${buyMode !== 1 ? `  (${buyMode === 'MAX' ? buyN : k}개)` : ''}`;
-      const can = (buyMode === 'MAX') ? maxBuy(r.i) >= 1 : maxBuy(r.i) >= k;
+      r.cost.textContent = `🪙 ${fmt(cost)}`;
+      const can = S.coins >= cost;
       r.cost.classList.toggle('no', !can);
       r.el.classList.toggle('afford', can);
-      r.el.classList.toggle('locked', !can && owned === 0 && S.coins < genCost(r.i, 0));
+      r.el.classList.toggle('locked', !can && owned === 0);
     } else if (r.type === 'click') {
       r.cnt.textContent = 'Lv.' + S.clickLevel;
       const c = clickUpgradeCost();
@@ -526,11 +504,9 @@ function refreshItems() {
 }
 
 function buyGen(i) {
-  const affordable = maxBuy(i);
-  const k = buyMode === 'MAX' ? affordable : Math.min(buyMode, affordable);
-  if (k <= 0) return;
-  const cost = costOf(i, k);
+  const cost = genCost(i, S.gens[i]);
   if (S.coins < cost) return;
+  const k = 1;
   S.coins -= cost; S.gens[i] += k;
   refreshItems();
 }
@@ -590,7 +566,6 @@ function loop(now) {
 load();
 resizeCanvas();
 buildTabs();
-buildBuyModes();
 buildItems();
 requestAnimationFrame(loop);
 setInterval(save, 5000);
