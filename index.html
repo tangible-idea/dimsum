@@ -49,8 +49,8 @@ const PERFECT_PX = 9;                            // 퍼펙트 판정 오차
 const LAND_RATIO = 0.48;                         // 이 비율 이상 겹쳐야 안착
 
 // ---- 상태 ----
-const ST_TITLE = 0, ST_AIM = 1, ST_DROP = 2, ST_TOPPLE = 3, ST_OVER = 4;
-let state = ST_TITLE;
+const ST_MENU = 0, ST_AIM = 1, ST_DROP = 2, ST_TOPPLE = 3, ST_OVER = 4;
+let state = ST_MENU;
 
 let stack = [];        // {x, y(바닥 기준 월드 높이), squash, hue}
 let cur = null;        // 현재 딤섬 {x, y, vy, vx, rot, vrot, hue}
@@ -67,6 +67,8 @@ let overDelay = 0;
 let floaters = [];     // 떠오르는 텍스트
 let steams = [];       // 김 파티클
 let time = 0;
+let menuClicks = +(localStorage.getItem('menu-clicks') || 0);
+let keyPressT = 0;
 
 function topOfStack() { return stack.length ? stack[stack.length - 1] : null; }
 function stackTopY() {
@@ -146,6 +148,11 @@ function gameOver() {
   state = ST_OVER;
 }
 
+function goMenu() {
+  state = ST_MENU;
+  cur = null;
+}
+
 // ---- 이펙트 ----
 function addFloater(x, y, text, color) {
   floaters.push({ x, y, text, color, life: 1 });
@@ -163,19 +170,62 @@ function burstSteam(x, y) {
 }
 
 // ---- 입력 ----
+function menuButton() {
+  return {
+    x: W * 0.16,
+    y: H * 0.72,
+    w: W * 0.68,
+    h: Math.max(58, H * 0.08),
+  };
+}
+function overRetryButton() {
+  return {
+    x: W * 0.15,
+    y: H * 0.62,
+    w: W * 0.32,
+    h: Math.max(52, H * 0.07),
+  };
+}
+function overMenuButton() {
+  return {
+    x: W * 0.53,
+    y: H * 0.62,
+    w: W * 0.32,
+    h: Math.max(52, H * 0.07),
+  };
+}
+function pointInRect(x, y, r) {
+  return x >= r.x && x <= r.x + r.w && y >= r.y && y <= r.y + r.h;
+}
+function triggerMenuClick() {
+  menuClicks++;
+  keyPressT = 0.12;
+  localStorage.setItem('menu-clicks', menuClicks);
+}
 function press(e) {
   e.preventDefault();
-  if (state === ST_TITLE) startGame();
-  else if (state === ST_AIM) drop();
-  else if (state === ST_OVER) startGame();
+  const x = e.clientX ?? W / 2;
+  const y = e.clientY ?? H / 2;
+  if (state === ST_MENU) {
+    if (pointInRect(x, y, menuButton())) startGame();
+    else triggerMenuClick();
+  } else if (state === ST_AIM) drop();
+  else if (state === ST_OVER) {
+    if (pointInRect(x, y, overRetryButton())) startGame();
+    else if (pointInRect(x, y, overMenuButton())) goMenu();
+  }
 }
 canvas.addEventListener('pointerdown', press);
-window.addEventListener('keydown', (e) => { console.log('keydown', e.code, e.key, e.keyCode); press(e); });
+window.addEventListener('keydown', (e) => {
+  if (state === ST_MENU) triggerMenuClick();
+  else press(e);
+});
 
 // ---- 업데이트 ----
 let last = performance.now();
 function update(dt) {
   time += dt;
+  if (keyPressT > 0) keyPressT = Math.max(0, keyPressT - dt);
 
   // 카메라
   cameraY += (camTarget - cameraY) * Math.min(1, dt * 5);
@@ -383,19 +433,8 @@ function draw() {
 
   // ---- UI ----
   ctx.textAlign = 'center';
-  if (state === ST_TITLE) {
-    overlay();
-    ctx.fillStyle = '#fff';
-    ctx.font = `bold ${Math.round(W * 0.12)}px -apple-system, sans-serif`;
-    ctx.fillText('🥟 딤섬 타워', W / 2, H * 0.36);
-    ctx.font = `${Math.round(W * 0.045)}px -apple-system, sans-serif`;
-    ctx.fillText('탭해서 딤섬을 떨어뜨려 쌓아요', W / 2, H * 0.44);
-    pulseText('탭해서 시작!', H * 0.6);
-    if (best > 0) {
-      ctx.fillStyle = 'rgba(255,255,255,0.8)';
-      ctx.font = `${Math.round(W * 0.04)}px -apple-system, sans-serif`;
-      ctx.fillText(`최고 기록: ${best}`, W / 2, H * 0.68);
-    }
+  if (state === ST_MENU) {
+    drawMainMenu();
   } else if (state === ST_OVER) {
     overlay();
     ctx.fillStyle = '#fff';
@@ -405,7 +444,8 @@ function draw() {
     ctx.fillText(`${score}`, W / 2, H * 0.46);
     ctx.font = `${Math.round(W * 0.045)}px -apple-system, sans-serif`;
     ctx.fillText(score >= best && score > 0 ? '🎉 신기록!' : `최고 기록: ${best}`, W / 2, H * 0.53);
-    pulseText('탭해서 다시 시작', H * 0.66);
+    drawButton(overRetryButton(), '다시 하기', '#ff7a59');
+    drawButton(overMenuButton(), '메인 메뉴', '#5c7cfa');
   } else {
     // 점수
     ctx.fillStyle = '#fff';
@@ -430,6 +470,82 @@ function pulseText(text, y) {
   ctx.fillStyle = `rgba(255,255,255,${a})`;
   ctx.font = `bold ${Math.round(W * 0.055)}px -apple-system, sans-serif`;
   ctx.fillText(text, W / 2, y);
+}
+
+function drawButton(r, text, color) {
+  ctx.save();
+  ctx.fillStyle = color;
+  roundRect(r.x, r.y, r.w, r.h, Math.min(18, r.h * 0.3));
+  ctx.fill();
+  ctx.strokeStyle = 'rgba(255,255,255,0.55)';
+  ctx.lineWidth = 3;
+  ctx.stroke();
+  ctx.fillStyle = '#fff';
+  ctx.font = `bold ${Math.round(Math.min(r.h * 0.42, W * 0.052))}px -apple-system, sans-serif`;
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillText(text, r.x + r.w / 2, r.y + r.h / 2);
+  ctx.restore();
+}
+
+function drawKeyboard(x, y) {
+  const size = Math.min(W * 0.34, 170);
+  const press = keyPressT > 0 ? keyPressT / 0.12 : 0;  // 1 → 0
+  const depth = size * 0.18;                            // 키캡 두께
+  const travel = depth * press;                        // 눌린 만큼 내려감
+  const r = size * 0.18;
+  const half = size / 2;
+
+  ctx.save();
+  ctx.translate(x, y);
+
+  // 키캡 밑단(베이스) - 항상 같은 위치
+  ctx.fillStyle = '#3c2f2a';
+  roundRect(-half, -half + depth, size, size, r);
+  ctx.fill();
+
+  // 눌린 만큼 그림자 줄어듦
+  ctx.fillStyle = '#2b211d';
+  roundRect(-half, -half + depth - (depth - travel), size, size, r);
+  ctx.fill();
+
+  // 키캡 윗면(눌리면 아래로 이동)
+  const topY = -half - (depth - travel);
+  const grad = ctx.createLinearGradient(0, topY, 0, topY + size);
+  grad.addColorStop(0, press > 0 ? '#ffe7a8' : '#fff4dd');
+  grad.addColorStop(1, press > 0 ? '#f3c969' : '#e9d3a6');
+  ctx.fillStyle = grad;
+  roundRect(-half, topY, size, size, r);
+  ctx.fill();
+  ctx.strokeStyle = 'rgba(0,0,0,0.12)';
+  ctx.lineWidth = 2;
+  ctx.stroke();
+
+  // 윗면 안쪽 음각(입체감 강조)
+  ctx.fillStyle = 'rgba(255,255,255,0.35)';
+  roundRect(-half + size * 0.12, topY + size * 0.12, size * 0.76, size * 0.76, r * 0.7);
+  ctx.fill();
+
+  ctx.restore();
+}
+
+function drawMainMenu() {
+  overlay();
+  ctx.fillStyle = '#fff';
+  ctx.font = `bold ${Math.round(W * 0.115)}px -apple-system, sans-serif`;
+  ctx.fillText('메인 메뉴', W / 2, H * 0.16);
+  ctx.font = `${Math.round(W * 0.042)}px -apple-system, sans-serif`;
+  ctx.fillText('빈 곳을 클릭하면 키보드가 빠르게 눌려요', W / 2, H * 0.23);
+  drawKeyboard(W / 2, H * 0.43);
+  ctx.fillStyle = '#fff';
+  ctx.font = `bold ${Math.round(W * 0.07)}px -apple-system, sans-serif`;
+  ctx.fillText(`총 클릭 수 ${menuClicks}`, W / 2, H * 0.62);
+  drawButton(menuButton(), '🥟 딤섬 타워 시작', '#ff7a59');
+  if (best > 0) {
+    ctx.fillStyle = 'rgba(255,255,255,0.82)';
+    ctx.font = `${Math.round(W * 0.038)}px -apple-system, sans-serif`;
+    ctx.fillText(`딤섬 최고 기록: ${best}`, W / 2, H * 0.86);
+  }
 }
 
 function loop(now) {
