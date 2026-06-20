@@ -130,6 +130,9 @@ export default function App() {
     return fallback;
   }, []);
 
+  // boot를 ref로 노출해 register → boot 순환 의존 방지
+  const bootRef = useRef(null);
+
   const register = useCallback(async () => {
     setGate({ state: 'loading', msg: '기기를 등록하는 중...' });
     const { data, error } = await deviceRegister();
@@ -138,7 +141,7 @@ export default function App() {
       setGate({ state: 'error', msg });
       return;
     }
-    setGate({ state: 'secret', secret: data.device.device_secret });
+    bootRef.current?.();
   }, [fnError]);
 
   const boot = useCallback(async () => {
@@ -173,6 +176,7 @@ export default function App() {
       });
     }
   }, [game, register, fnError, toast]);
+  bootRef.current = boot;
 
   useEffect(() => { boot(); /* eslint-disable-next-line */ }, []);
 
