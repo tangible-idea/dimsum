@@ -111,7 +111,7 @@ export default function App() {
     }
   }, [toast]);
 
-  const { broadcastClick } = useRealtime({
+  const { broadcastClick, broadcastPoke } = useRealtime({
     session: auth.session, myId: auth.myId, friends: auth.friends, onSignal,
   });
 
@@ -261,6 +261,11 @@ export default function App() {
               friends={auth.friends}
               signal={friendSignal}
               onFindFriends={auth.ready ? () => setFindFriendsOpen(true) : undefined}
+              onPoke={auth.ready && auth.friends.length > 0 ? () => {
+                const sent = broadcastPoke();
+                if (sent) toast('👉 친구들을 콕 찔렀어요!');
+                else toast('잠깐! 10초 후에 다시 찌를 수 있어요 ⏳');
+              } : undefined}
             />
             <div className="mylink">
               {auth.ready && (

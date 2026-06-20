@@ -33,6 +33,8 @@ export function useRealtime({ session, myId, friends, onSignal }) {
     };
   }, [session, myId, friends]);
 
+  const lastPoke = useRef(0);
+
   const broadcastClick = useCallback(() => {
     const ch = channelRef.current;
     if (!ch) return;
@@ -42,5 +44,15 @@ export function useRealtime({ session, myId, friends, onSignal }) {
     ch.send({ type: 'broadcast', event: 'click', payload: { ts: now } });
   }, []);
 
-  return { broadcastClick };
+  const broadcastPoke = useCallback(() => {
+    const ch = channelRef.current;
+    if (!ch) return;
+    const now = Date.now();
+    if (now - lastPoke.current < 10000) return false; // 10초 쿨다운
+    lastPoke.current = now;
+    ch.send({ type: 'broadcast', event: 'poke', payload: { ts: now } });
+    return true;
+  }, []);
+
+  return { broadcastClick, broadcastPoke };
 }
