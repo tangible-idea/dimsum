@@ -1,12 +1,13 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { fmt, levelInfo, LEVEL_NAMES, NEWS } from './lib/game';
-import { deviceAuth, deviceCode, deviceRegister, googleLogin, supabase } from './lib/supabase';
+import { deviceAuth, deviceCode, deviceRegister, googleLogin, inviteSlug, supabase, updateSlug } from './lib/supabase';
 import { useGame } from './hooks/useGame';
 import { useRealtime } from './hooks/useRealtime';
 import Character from './components/Character';
 import Shop from './components/Shop';
 import FriendBar from './components/FriendBar';
 import Gate from './components/Gate';
+import InviteModal from './components/InviteModal';
 
 function Stars() {
   const stars = useMemo(
@@ -62,11 +63,39 @@ export default function App() {
   const [friendSignal, setFriendSignal] = useState(null);
   const [toastData, setToastData] = useState({ msg: '', ts: 0 });
 
+  const [invite, setInvite] = useState(null);
+  const [slugInput, setSlugInput] = useState('');
+  const [slugEditing, setSlugEditing] = useState(false);
+  const [slugSaving, setSlugSaving] = useState(false);
+
   const readyRef = useRef(false);
   readyRef.current = auth.ready;
   const prevLevel = useRef(snap.level.lvl);
 
   const toast = useCallback((msg) => setToastData({ msg, ts: Date.now() }), []);
+
+  const saveSlug = useCallback(async () => {
+    const val = slugInput.trim().toLowerCase();
+    if (!val || val === auth.profile?.slug) { setSlugEditing(false); return; }
+    if (!/^[a-z0-9][a-z0-9\-]{1,18}[a-z0-9]$/.test(val)) {
+      toast('슬러그는 영문 소문자·숫자·하이픈, 3~20자로 입력해주세요.');
+      return;
+    }
+    setSlugSaving(true);
+    const { data, error } = await updateSlug(auth.myId, val);
+    setSlugSaving(false);
+    if (error) { toast(error.message?.includes('unique') ? '이미 사용 중인 슬러그예요.' : '저장 실패'); return; }
+    setAuth((a) => ({ ...a, profile: { ...a.profile, slug: data.slug } }));
+    setSlugEditing(false);
+    toast('슬러그가 저장됐어요 ✅');
+  }, [slugInput, auth.profile, auth.myId, toast]);
+
+  const copyInviteUrl = useCallback(() => {
+    const slug = auth.profile?.slug;
+    if (!slug) { toast('먼저 슬러그를 설정해주세요!'); return; }
+    const url = `${location.origin}${location.pathname}?invite=${slug}`;
+    navigator.clipboard.writeText(url).then(() => toast('초대 링크가 복사됐어요 🔗')).catch(() => toast(url));
+  }, [auth.profile, toast]);
 
   // ---- 친구 신호 수신 ----
   const onSignal = useCallback((f, type) => {
@@ -127,9 +156,20 @@ export default function App() {
     if (res.needsLogin) { setGate({ state: 'login' }); return; }
     if (res.owner === false) { setGate({ state: 'owned' }); return; }
     game.seedFromCloud(res.gameState);
-    setAuth({ ready: true, session, myId: session.user.id, profile: res.profile, friends: res.friends || [] });
+    const profile = res.profile;
+    setSlugInput(profile?.slug || '');
+    setAuth({ ready: true, session, myId: session.user.id, profile, friends: res.friends || [] });
     setGate(null);
-    toast(`${(res.profile && res.profile.nickname) || '환영'}님, 어서오세요! 🥟`);
+    toast(`${profile?.nickname || '환영'}님, 어서오세요! 🥟`);
+
+    // 친구 초대 링크로 접속한 경우
+    if (inviteSlug) {
+      setInvite({ slug: inviteSlug, myId: session.user.id, session,
+        onDone: (target) => {
+          setAuth((a) => ({ ...a, friends: [...a.friends.filter((f) => f.id !== target.id), target] }));
+        }
+      });
+    }
   }, [game, register, fnError, toast]);
 
   useEffect(() => { boot(); /* eslint-disable-next-line */ }, []);
@@ -167,6 +207,8 @@ export default function App() {
   useEffect(() => {
     const h = (e) => {
       if (e.repeat || e.metaKey || e.ctrlKey || e.altKey) return;
+      const tag = document.activeElement?.tagName;
+      if (tag === 'INPUT' || tag === 'TEXTAREA' || document.activeElement?.isContentEditable) return;
       e.preventDefault();
       handleClick();
     };
@@ -210,12 +252,38 @@ export default function App() {
             <div className="coin"><span className="ic">🪙</span><span className="coins" ref={coinsRef}>{fmt(snap.coins)}</span></div>
             <div className="persec">초당 {fmt(snap.perSec)} 코인</div>
             <FriendBar friends={auth.friends} signal={friendSignal} />
+            <div className="mylink">
+              {auth.ready && (
+                slugEditing ? (
+                  <span className="mylink-edit">
+                    <input
+                      autoFocus
+                      value={slugInput}
+                      placeholder="my-slug"
+                      onChange={(e) => setSlugInput(e.target.value.toLowerCase())}
+                      onKeyDown={(e) => { if (e.key === 'Enter') saveSlug(); if (e.key === 'Escape') setSlugEditing(false); }}
+                      onBlur={saveSlug}
+                      disabled={slugSaving}
+                    />
+                  </span>
+                ) : (
+                  <span className="mylink-slug" onClick={() => setSlugEditing(true)}>
+                    {auth.profile?.slug ? `@${auth.profile.slug}` : '슬러그 설정하기 ✏️'}
+                  </span>
+                )
+              )}
+              {auth.ready && !slugEditing && (
+                <button className="mylink-copy" onClick={copyInviteUrl} title="초대 링크 복사">🔗</button>
+              )}
+            </div>
             <Character ref={characterRef} />
             <div className="combo">🔥 클릭 x{snap.combo.toFixed(1)}</div>
           </div>
           <Shop snap={snap} buyGen={game.buyGen} buyClickUpgrade={game.buyClickUpgrade} />
         </div>
       </div>
+
+      <InviteModal invite={invite} onClose={() => setInvite(null)} />
 
       {gate && (
         <Gate

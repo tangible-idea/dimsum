@@ -61,7 +61,7 @@ Deno.serve(async (req) => {
     await admin.from("clicker_game_states").upsert({ owner_id: user.id }, { onConflict: "owner_id", ignoreDuplicates: true });
 
     const [{ data: profile, error: pErr }, { data: gameState, error: gsErr }, { data: fships }] = await Promise.all([
-      admin.from("clicker_profiles").select("id, nickname").eq("id", user.id).single(),
+      admin.from("clicker_profiles").select("id, nickname, slug").eq("id", user.id).single(),
       admin.from("clicker_game_states").select("*").eq("owner_id", user.id).single(),
       admin
         .from("clicker_friendships")

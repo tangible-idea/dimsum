@@ -16,6 +16,9 @@ export const deviceCode = (() => {
   return null;
 })();
 
+// ?invite=SLUG 파라미터 감지
+export const inviteSlug = new URLSearchParams(location.search).get('invite');
+
 export const deviceAuth = () =>
   supabase.functions.invoke('clicker_device_auth', { body: { device_code: deviceCode } });
 
@@ -24,3 +27,12 @@ export const deviceRegister = () =>
 
 export const googleLogin = () =>
   supabase.auth.signInWithOAuth({ provider: 'google', options: { redirectTo: window.location.href } });
+
+export const slugLookup = (slug) =>
+  supabase.functions.invoke('clicker_slug_lookup', { body: { slug } });
+
+export const friendAdd = (targetUserId) =>
+  supabase.functions.invoke('clicker_friend_add', { body: { target_user_id: targetUserId } });
+
+export const updateSlug = (myId, slug) =>
+  supabase.from('clicker_profiles').update({ slug }).eq('id', myId).select('slug').single();

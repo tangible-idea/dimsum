@@ -11,3 +11,9 @@ verify_jwt = false   # 유저 JWT 대신 x-device-secret으로 기기 인증
 
 [functions.clicker_poke_inbox]
 verify_jwt = false   # 유저 JWT 대신 x-device-secret으로 기기 인증
+
+[functions.clicker_slug_lookup]
+verify_jwt = false   # 공개 슬러그 조회, 인증 불필요
+
+[functions.clicker_friend_add]
+verify_jwt = false   # 내부에서 Authorization 헤더로 유저 검증

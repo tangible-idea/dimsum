@@ -110,6 +110,20 @@ body {
   border-radius: 50%; animation: spin 1s linear infinite; margin: 14px auto; }
 @keyframes spin { to { transform: rotate(360deg); } }
 
+/* 내 초대 링크 */
+.mylink { display: flex; align-items: center; gap: 6px; margin: 4px 0; min-height: 28px; }
+.mylink-slug { font-size: 13px; color: var(--muted); cursor: pointer; border-bottom: 1px dashed rgba(255,255,255,.2); padding-bottom: 1px; }
+.mylink-slug:hover { color: var(--gold-soft); border-bottom-color: var(--gold); }
+.mylink-edit { flex: 1; }
+.mylink-edit input { width: 100%; background: rgba(0,0,0,.35); border: 1px solid var(--gold); border-radius: 8px;
+  color: var(--text); padding: 4px 8px; font-size: 13px; outline: none; }
+.mylink-copy { background: transparent; border: 1px solid rgba(255,255,255,.15); border-radius: 8px;
+  color: var(--muted); padding: 3px 8px; cursor: pointer; font-size: 15px; }
+.mylink-copy:hover { border-color: var(--gold); color: var(--gold); }
+
+/* 친구 초대 모달 (게임 위에 뜨는 오버레이) */
+.invite-modal { background: rgba(15, 10, 34, 0.88); backdrop-filter: blur(6px); }
+
 @media (max-width: 720px) {
   .game { flex-direction: column; }
   .shop { flex: 1 1 auto; max-width: none; border-left: none; border-top: 1px solid rgba(255,255,255,.08); }
