@@ -37,12 +37,5 @@ export const usersSearch = (q) =>
 export const friendAdd = (targetUserId) =>
   supabase.functions.invoke('clicker_friend_add', { body: { target_user_id: targetUserId } });
 
-export const updateSlug = async (myId, slug) => {
-  const { data, error } = await supabase
-    .from('clicker_profiles').update({ slug }).eq('id', myId).select('slug').single();
-  if (!error) {
-    // 기기 slug 도 동기화 (실패해도 무시 — profile이 주)
-    await supabase.from('clicker_devices').update({ slug }).eq('owner_id', myId);
-  }
-  return { data, error };
-};
+export const updateSlug = (myId, slug) =>
+  supabase.from('clicker_profiles').update({ slug }).eq('id', myId).select('slug').single();

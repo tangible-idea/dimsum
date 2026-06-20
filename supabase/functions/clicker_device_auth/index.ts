@@ -25,12 +25,29 @@ Deno.serve(async (req) => {
 
     const admin = createClient(SUPABASE_URL, SERVICE_ROLE);
 
-    const { data: device, error: devErr } = await admin
+    let { data: device, error: devErr } = await admin
       .from("clicker_devices")
       .select("id, owner_id, registered")
-      .or(`device_code.eq.${device_code},slug.eq.${device_code}`)
+      .eq("device_code", device_code)
       .maybeSingle();
     if (devErr) { console.error("[device_auth] DB error:", devErr.message); return json({ error: devErr.message }, 500); }
+
+    // device_code로 못 찾으면 profile slug로 fallback
+    if (!device) {
+      const { data: profile } = await admin
+        .from("clicker_profiles")
+        .select("id")
+        .eq("slug", device_code)
+        .maybeSingle();
+      if (profile) {
+        const { data: d } = await admin
+          .from("clicker_devices")
+          .select("id, owner_id, registered")
+          .eq("owner_id", profile.id)
+          .maybeSingle();
+        device = d;
+      }
+    }
     console.log("[device_auth] device:", device);
 
     if (!device || !device.registered || !device.owner_id) {
