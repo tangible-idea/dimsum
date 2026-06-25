@@ -111,9 +111,13 @@ export default function App() {
     }
   }, [toast]);
 
-  const { broadcastClick, broadcastPoke } = useRealtime({
-    myId: auth.myId, myName: auth.profile?.slug || auth.profile?.nickname, friends: auth.friends, onSignal,
-  });
+  // 내 ESP32 기기가 보낸 신호 → 클릭 동작 재생 (handleClick은 아래에서 정의)
+  const handleClickRef = useRef(null);
+  const onDeviceSignal = useCallback(() => {
+    handleClickRef.current?.();
+  }, []);
+
+  useRealtime({ myId: auth.myId, friends: auth.friends, onSignal, onDeviceSignal });
 
   // ---- 부팅 / 인증 ----
   const fnError = useCallback(async (error, data, fallback) => {
@@ -207,8 +211,8 @@ export default function App() {
     const power = game.click();
     characterRef.current?.triggerClick(power);
     popCoins();
-    broadcastClick();
-  }, [game, broadcastClick]);
+  }, [game]);
+  handleClickRef.current = handleClick;
 
   useEffect(() => {
     const h = (e) => {
@@ -261,11 +265,6 @@ export default function App() {
               friends={auth.friends}
               signal={friendSignal}
               onFindFriends={auth.ready ? () => setFindFriendsOpen(true) : undefined}
-              onPoke={auth.ready && auth.friends.length > 0 ? () => {
-                const sent = broadcastPoke();
-                if (sent) toast('👉 친구들을 콕 찔렀어요!');
-                else toast('잠깐! 10초 후에 다시 찌를 수 있어요 ⏳');
-              } : undefined}
             />
             <div className="mylink">
               {auth.ready && (

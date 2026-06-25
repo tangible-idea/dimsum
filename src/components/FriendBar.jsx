@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 
 // signal: { id, type:'click'|'poke', ts } — 새 객체가 올 때마다 해당 칩을 잠깐 반짝
-export default function FriendBar({ friends, signal, onFindFriends, onPoke }) {
+export default function FriendBar({ friends, signal, onFindFriends }) {
   const [flash, setFlash] = useState(null);
 
   useEffect(() => {
@@ -25,7 +25,6 @@ export default function FriendBar({ friends, signal, onFindFriends, onPoke }) {
           </span>
         );
       })}
-      {onPoke && <button className="poke-btn" onClick={onPoke} title="친구들 콕 찌르기">👉</button>}
       <button className="ff-btn" onClick={onFindFriends} title="친구 찾기">＋</button>
     </div>
   );
