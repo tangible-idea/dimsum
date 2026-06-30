@@ -523,3 +523,51 @@ body {
 .result-card { text-align: center; }
 .result-dish { width: 96px; height: 96px; object-fit: contain; margin: 0 auto 6px; }
 .result-price { font-size: 18px; font-weight: 800; color: hsl(var(--gold)); margin: 10px 0 16px; }
+
+/* =========================================================
+   딤섬 메타버스 (/space)
+   ========================================================= */
+.space-root { position: fixed; inset: 0; overflow: hidden; background: #0b0b0f; }
+.space-canvas { position: absolute; inset: 0; }
+.space-canvas canvas { display: block; }
+
+.space-hud {
+  position: fixed; top: 0; left: 0; right: 0; z-index: 10;
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 10px 14px;
+  background: linear-gradient(180deg, rgba(0,0,0,0.55), rgba(0,0,0,0));
+  color: hsl(var(--foreground)); pointer-events: none;
+}
+.space-hud .title { font-size: 15px; font-weight: 800; }
+.space-hud .hud-right { display: flex; align-items: center; gap: 10px; pointer-events: auto; }
+.space-hud .headcount {
+  font-size: 13px; font-weight: 700; color: hsl(var(--primary));
+  background: rgba(0,0,0,0.4); padding: 4px 10px; border-radius: 999px;
+}
+.space-hud .logout {
+  font-size: 12px; padding: 5px 12px; border-radius: 999px; cursor: pointer;
+  background: hsl(var(--secondary)); color: hsl(var(--foreground)); border: 1px solid hsl(var(--border));
+}
+
+.space-hint {
+  position: fixed; bottom: 16px; left: 50%; transform: translateX(-50%); z-index: 10;
+  font-size: 12px; color: hsl(var(--muted-foreground));
+  background: rgba(0,0,0,0.45); padding: 6px 14px; border-radius: 999px; pointer-events: none;
+}
+
+.space-center {
+  position: fixed; inset: 0; z-index: 20;
+  display: flex; align-items: center; justify-content: center;
+  color: hsl(var(--foreground)); background: #0b0b0f;
+}
+.login-card {
+  display: flex; flex-direction: column; align-items: center; gap: 10px; text-align: center;
+  background: hsl(var(--card)); border: 1px solid hsl(var(--border));
+  padding: 32px 28px; border-radius: var(--radius);
+}
+.login-title { font-size: 22px; font-weight: 800; }
+.login-sub { font-size: 13px; color: hsl(var(--muted-foreground)); margin-bottom: 8px; }
+.google-btn {
+  font-size: 14px; font-weight: 700; padding: 10px 20px; border-radius: var(--radius); cursor: pointer;
+  background: hsl(var(--primary)); color: hsl(var(--primary-foreground)); border: 0;
+}
