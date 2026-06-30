@@ -169,6 +169,8 @@ export default function App() {
       return;
     }
     if (res.registered === false) {
+      // device_code가 DB에 없는 기기 → 경고
+      if (res.exists === false) { setGate({ state: 'notfound' }); return; }
       // 로그인됨 + 미등록 → WiFi 설정 안내 (CTA에서 등록 진행)
       if (session) { setGate({ state: 'wifi' }); return; }
       // 비로그인 → 먼저 구글 로그인

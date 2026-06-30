@@ -49,6 +49,13 @@ export default function Gate({ gate, deviceCode, onGoogle, onStart, onRegister, 
       <p>이 기기는 이미 다른 구글 계정에 등록되어 있어요.</p>
       <button className="gbtn ghost" onClick={onLogout}>다른 계정으로 로그인</button>
     </>);
+  } else if (state === 'notfound') {
+    body = (<>
+      <div className="logo">🚫</div><h1>없는 기기예요</h1>
+      <p>이 코드로 등록된 기기를 찾을 수 없어요.<br />기기: <b>{deviceCode}</b></p>
+      <p className="warn">기기 링크/QR을 다시 확인하거나, 기기에 인쇄된 코드와 같은지 확인해주세요.</p>
+      <button className="gbtn ghost" onClick={onRetry}>다시 시도</button>
+    </>);
   } else if (state === 'nocode') {
     body = (<>
       <div className="logo">🥟</div><h1>딤섬 찜기</h1>
