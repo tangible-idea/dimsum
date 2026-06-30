@@ -109,7 +109,7 @@ export default class WorldScene extends Phaser.Scene {
 
     const container = this.add.container(x, y, [sprite, head, foot]);
     container.setSize(SPRITE, SPRITE);
-    return { container, sprite, head, foot, tween: null, tx: x, ty: y };
+    return { container, sprite, head, foot, tween: null, tx: x, ty: y, lastSeen: Date.now() };
   }
 
   moveAvatar(av, x, y) {
@@ -139,16 +139,44 @@ export default class WorldScene extends Phaser.Scene {
         console.log('[space] presence sync, keys =', Object.keys(channel.presenceState()));
         this.reconcile();
       })
+      .on('presence', { event: 'leave' }, ({ leftPresences }) => {
+        console.log('[space] presence leave', leftPresences?.map((p) => p.id));
+      })
       .on('broadcast', { event: 'move' }, ({ payload }) => {
-        console.log('[space] recv move', payload);
         if (!payload || payload.id === this.clientId) return;
         const av = this.others.get(payload.id);
-        if (av) this.moveAvatar(av, payload.x, payload.y); // 없으면 presence 가 곧 생성
+        if (av) { av.lastSeen = Date.now(); this.moveAvatar(av, payload.x, payload.y); } // 없으면 presence 가 곧 생성
       })
       .subscribe((status, err) => {
         console.log('[space] channel status =', status, err || '');
         if (status === 'SUBSCRIBED') channel.track(this.state);
       });
+
+    // 유예 스위퍼: presence 가 일시적으로 비어도 바로 지우지 않고,
+    // 일정 시간(GRACE) 이상 한 번도 안 보인 경우에만 제거한다.
+    this.time.addEvent({ delay: 3000, loop: true, callback: () => this.sweep() });
+  }
+
+  sweep() {
+    const GRACE = 15000;
+    const now = Date.now();
+    let removed = false;
+    for (const [id, av] of this.others) {
+      if (now - (av.lastSeen || 0) > GRACE) {
+        console.log('[space] sweep remove', id);
+        if (av.tween) av.tween.stop();
+        av.container.destroy();
+        this.others.delete(id);
+        removed = true;
+      }
+    }
+    if (removed) this.emitHeadcount();
+  }
+
+  emitHeadcount() {
+    const count = this.others.size + 1;
+    this.registry.set('headcount', count);
+    this.game.events.emit('headcount', count);
   }
 
   // 클릭 목표 좌표를 presence 메타에 반영 → 다른 접속자에게 전파됨
@@ -158,17 +186,17 @@ export default class WorldScene extends Phaser.Scene {
     this.channel.track(this.state);
   }
 
-  // presence 상태로 원격 플레이어 add/remove/move + 라벨 갱신
+  // presence 상태로 원격 플레이어 add/update + 마지막 목격 시각 갱신.
+  // 제거는 여기서 하지 않고 sweep() 의 유예 시간에 맡긴다(일시적 빈 sync 보호).
   reconcile() {
     if (!this.channel) return;
     const state = this.channel.presenceState();
-    const present = new Set();
+    const now = Date.now();
 
     Object.values(state).forEach((entries) => {
       const meta = entries[entries.length - 1]; // 최신 메타
       const id = meta?.id;
       if (!id || id === this.clientId) return; // 자기 자신 제외
-      present.add(id);
 
       let av = this.others.get(id);
       if (!av) {
@@ -183,21 +211,10 @@ export default class WorldScene extends Phaser.Scene {
           this.moveAvatar(av, meta.x, meta.y);
         }
       }
+      av.lastSeen = now;
     });
 
-    // 떠난 플레이어 제거
-    for (const [id, av] of this.others) {
-      if (!present.has(id)) {
-        if (av.tween) av.tween.stop();
-        av.container.destroy();
-        this.others.delete(id);
-      }
-    }
-
-    // 외부(React HUD)에서 인원수 표시용
-    const count = present.size + 1;
-    this.registry.set('headcount', count);
-    this.game.events.emit('headcount', count);
+    this.emitHeadcount();
   }
 
   // 외부에서 내 클릭수(total_clicks) 갱신 시 호출
