@@ -10,15 +10,16 @@ const isSpace = location.pathname.replace(/\/+$/, '').endsWith('/space') || para
 
 const root = createRoot(document.getElementById('root'));
 
-const mount = (Component) =>
-  root.render(
-    <React.StrictMode>
-      <Component />
-    </React.StrictMode>
-  );
-
 if (isSpace) {
-  import('./Space.jsx').then(({ default: Space }) => mount(Space));
+  // 메타버스는 StrictMode 로 감싸지 않는다. dev 의 이중 마운트/언마운트가
+  // Phaser 게임과 Supabase Realtime 채널을 만들었다 부쉈다 하며 동기화를 깨기 때문.
+  import('./Space.jsx').then(({ default: Space }) => root.render(<Space />));
 } else {
-  import('./App.jsx').then(({ default: App }) => mount(App));
+  import('./App.jsx').then(({ default: App }) =>
+    root.render(
+      <React.StrictMode>
+        <App />
+      </React.StrictMode>
+    )
+  );
 }
