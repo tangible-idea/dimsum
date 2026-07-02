@@ -71,15 +71,20 @@ body {
 .tc-tap {
   appearance: none; background: none; border: none; cursor: pointer;
   display: block; width: 100%; text-align: center; padding: 8px 0;
-  transition: transform .06s ease;
+  transition: transform .05s ease;
 }
-.tc-tap:active { transform: scale(0.985); }
+.tc-tap:active { transform: scale(0.97) translateY(1px); }
 .tc-number {
   font-family: 'Space Mono', monospace; font-size: clamp(64px, 22vw, 88px); font-weight: 700;
   letter-spacing: -0.03em; color: var(--ink); line-height: 1; font-variant-numeric: tabular-nums;
 }
-.tc-number.pop { animation: tc-pop .16s ease-out; }
-@keyframes tc-pop { 0% { transform: scale(1.05); } 100% { transform: scale(1); } }
+.tc-number.pop { animation: tc-pop .22s cubic-bezier(.22, .9, .3, 1.4); will-change: transform; }
+@keyframes tc-pop {
+  0%   { transform: scale(1.22) translateY(2px); filter: brightness(.72); } /* 순간 임팩트 */
+  35%  { transform: scale(.955); filter: brightness(1); }                  /* 눌림(스쿼시) */
+  70%  { transform: scale(1.03); }                                         /* 반동 */
+  100% { transform: scale(1); }
+}
 .tc-delta {
   margin-top: 18px; font-family: 'Space Mono', monospace; font-size: 12px;
   letter-spacing: 0.14em; color: var(--muted-2);
