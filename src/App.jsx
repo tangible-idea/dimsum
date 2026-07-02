@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { deviceAuth, deviceCode, deviceRegister, googleLogin, supabase } from './lib/supabase';
+import { deviceAuth, deviceCode, deviceRegister, googleLogin, previewMode, supabase } from './lib/supabase';
 import { useRealtime } from './hooks/useRealtime';
 import Gate from './components/Gate';
 
@@ -94,6 +94,7 @@ export default function App() {
 
   // ---- 총 카운트 supabase 반영(디바운스) --------------------------------
   const scheduleFlush = useCallback((myId, value) => {
+    if (previewMode) return; // 미리보기: 서버 저장 안 함
     if (flushTimer.current) clearTimeout(flushTimer.current);
     flushTimer.current = setTimeout(() => {
       supabase.from('clicker_game_states').update({ coins: value }).eq('owner_id', myId)
@@ -147,6 +148,15 @@ export default function App() {
   }, [fnError]);
 
   const boot = useCallback(async () => {
+    if (previewMode) { // 로그인 없이 로컬 미리보기
+      setTotal(0);
+      localLoad('preview');
+      setAuth({ ready: true, session: null, myId: 'preview', profile: { nickname: '미리보기' } });
+      setGate(null);
+      setFriends([]);
+      toast('미리보기 모드예요. 탭을 눌러보세요!');
+      return;
+    }
     if (!deviceCode) { setGate({ state: 'nocode' }); return; }
     setGate({ state: 'loading' });
     const { data: { session } } = await supabase.auth.getSession();
@@ -175,7 +185,7 @@ export default function App() {
   // 이탈 시 마지막 값 저장
   useEffect(() => {
     const flush = () => {
-      if (!auth.myId) return;
+      if (!auth.myId || previewMode) return;
       if (flushTimer.current) clearTimeout(flushTimer.current);
       supabase.from('clicker_game_states').update({ coins: total }).eq('owner_id', auth.myId);
     };

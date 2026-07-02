@@ -6,8 +6,17 @@ const SUPA_ANON = import.meta.env.VITE_SUPABASE_ANON_KEY ||
 
 export const supabase = createClient(SUPA_URL, SUPA_ANON);
 
+// /preview 경로(또는 ?preview) → 로그인 없이 미리보기 모드
+export const previewMode = (() => {
+  const q = new URLSearchParams(location.search);
+  if (q.has('preview')) return true;
+  const seg = location.pathname.replace(/^\/+|\/+$/g, '').split('/').pop();
+  return seg === 'preview';
+})();
+
 // URL에서 device_code 추출: /DSJA-JD49... 경로 또는 ?device= 쿼리
 export const deviceCode = (() => {
+  if (previewMode) return null;
   const q = new URLSearchParams(location.search);
   const fromQuery = q.get('device') || q.get('d');
   if (fromQuery) return fromQuery;
