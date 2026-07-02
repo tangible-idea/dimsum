@@ -92,13 +92,30 @@ body {
 
 /* 퀘스트 카드 */
 .tc-quest {
+  appearance: none; width: 100%; text-align: left; cursor: pointer; font: inherit; color: inherit;
   border: 1px solid var(--line-2); border-radius: 18px; padding: 15px 16px;
   display: flex; align-items: center; gap: 13px; background: var(--card);
+  transition: border-color .2s, box-shadow .2s;
 }
 .tc-quest-ic {
   width: 42px; height: 42px; border-radius: 12px; background: var(--chip);
   display: flex; align-items: center; justify-content: center; color: var(--ink-2); flex: 0 0 auto;
+  transition: background .25s, color .25s;
 }
+/* 달성(미수령): 선물박스 강조 + 흔들림 */
+.tc-quest.done { border-color: #E3C98A; box-shadow: 0 10px 30px -16px rgba(200,160,60,.45); background: #FCF8EC; }
+.tc-quest.done .tc-quest-ic { background: #F3E3B8; color: #8A6A1E; animation: tc-wiggle 1.6s ease-in-out infinite; }
+.tc-quest.claimed .tc-quest-ic { background: #E4EDDD; color: #4F6B3E; }
+@keyframes tc-wiggle {
+  0%, 62%, 100% { transform: rotate(0); }
+  66% { transform: rotate(-9deg) scale(1.06); }
+  72% { transform: rotate(8deg) scale(1.06); }
+  78% { transform: rotate(-6deg); }
+  84% { transform: rotate(4deg); }
+  90% { transform: rotate(0); }
+}
+.tc-quest-cta { margin-top: 7px; font-size: 12px; font-weight: 600; color: #8A6A1E; }
+.tc-quest-cta.dim { color: var(--muted); font-weight: 500; }
 .tc-quest-body { flex: 1 1 auto; min-width: 0; }
 .tc-quest-head { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; }
 .tc-quest-head .t { font-size: 13.5px; font-weight: 600; color: var(--ink); }
@@ -140,6 +157,123 @@ body {
   box-shadow: 0 14px 40px -18px rgba(60,52,30,0.4);
 }
 .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+/* ---------- 폭죽(컨페티) ---------- */
+.confetti { position: fixed; inset: 0; z-index: 80; pointer-events: none; overflow: hidden; }
+.confetti span {
+  position: absolute; top: -16px; display: block;
+  animation: confetti-fall linear forwards; will-change: transform, opacity;
+}
+@keyframes confetti-fall {
+  0%   { transform: translate(0, 0) rotate(0); opacity: 1; }
+  85%  { opacity: 1; }
+  100% { transform: translate(var(--drift, 0px), 108vh) rotate(var(--spin, 540deg)); opacity: 0; }
+}
+
+/* ---------- 상단 도감 버튼 ---------- */
+.tc-col-btn { position: relative; }
+.tc-col-badge {
+  position: absolute; top: 4px; right: 2px; min-width: 16px; height: 16px; padding: 0 4px;
+  border-radius: 8px; background: var(--ink); color: var(--bg);
+  font-family: 'Space Mono', monospace; font-size: 9px; line-height: 16px; text-align: center;
+}
+
+/* ---------- 보상 모달(선물상자 → 캐릭터) ---------- */
+.rw {
+  position: fixed; inset: 0; z-index: 70; display: grid; place-items: center; padding: 24px;
+  background: rgba(32, 30, 23, 0.42); backdrop-filter: blur(8px);
+  animation: rw-fade .25s ease;
+}
+@keyframes rw-fade { from { opacity: 0; } }
+.rw-box {
+  appearance: none; background: none; border: none; cursor: pointer;
+  display: flex; flex-direction: column; align-items: center; gap: 22px; color: #FAF9F4;
+}
+.rw-gift {
+  width: 168px; height: 168px; border-radius: 40px; background: #FAF9F4; color: var(--ink-2);
+  display: flex; align-items: center; justify-content: center;
+  box-shadow: 0 34px 80px -24px rgba(0,0,0,.5);
+}
+.rw-gift.wiggle { animation: rw-in .4s cubic-bezier(.22,.9,.3,1.4), tc-wiggle 1.8s .4s ease-in-out infinite; }
+@keyframes rw-in { from { transform: scale(.4); opacity: 0; } }
+.rw-gift.burst { animation: rw-burst .75s cubic-bezier(.5,-.3,.6,1.3) forwards; }
+@keyframes rw-burst {
+  0%   { transform: scale(1) rotate(0); }
+  30%  { transform: scale(.86) rotate(-7deg); }
+  55%  { transform: scale(1.35) rotate(6deg); }
+  100% { transform: scale(2.6) rotate(-3deg); opacity: 0; filter: brightness(1.6); }
+}
+.rw-hint { font-family: 'Space Mono', monospace; font-size: 12px; letter-spacing: .18em; opacity: .85; }
+
+.rw-card {
+  position: relative; background: #fff; border: 1px solid var(--line-2); border-radius: 26px;
+  padding: 34px 28px 26px; width: 100%; max-width: 340px; text-align: center;
+  box-shadow: 0 40px 90px -30px rgba(0,0,0,.45); overflow: hidden;
+  animation: rw-card-in .45s cubic-bezier(.22,.9,.3,1.35);
+}
+@keyframes rw-card-in { from { transform: scale(.6) translateY(30px); opacity: 0; } }
+.rw-glow {
+  position: absolute; left: 50%; top: 96px; width: 300px; height: 300px;
+  transform: translate(-50%, -50%);
+  background: radial-gradient(circle, rgba(232,180,79,.35), transparent 65%);
+  animation: rw-glow 2.4s ease-in-out infinite; pointer-events: none;
+}
+@keyframes rw-glow { 50% { opacity: .45; transform: translate(-50%,-50%) scale(1.15); } }
+.rw-char {
+  position: relative; width: 150px; height: 150px; object-fit: contain;
+  animation: rw-char-in .55s .05s cubic-bezier(.22,.9,.3,1.5) backwards, rw-float 3s .7s ease-in-out infinite;
+}
+@keyframes rw-char-in { from { transform: scale(.2) rotate(-14deg); opacity: 0; } }
+@keyframes rw-float { 50% { transform: translateY(-7px); } }
+.rw-rarity {
+  display: inline-block; margin-top: 12px; padding: 3px 12px; border-radius: 999px;
+  font-family: 'Space Mono', monospace; font-size: 10px; letter-spacing: .16em;
+}
+.rw-rarity.common { background: var(--chip); color: var(--chip-ink); }
+.rw-rarity.rare { background: #DDE8F2; color: #3A5F82; }
+.rw-rarity.epic { background: linear-gradient(120deg, #F3E3B8, #EACB77); color: #7A5A10; }
+.rw-name { margin-top: 10px; font-size: 21px; font-weight: 700; letter-spacing: -.01em; color: var(--ink); }
+.rw-sub { margin: 8px 0 20px; font-size: 13px; color: var(--ink-mid); }
+
+/* ---------- 캐릭터 도감 ---------- */
+.col {
+  position: fixed; inset: 0; z-index: 65; display: grid; place-items: center; padding: 20px;
+  background: rgba(32, 30, 23, 0.35); backdrop-filter: blur(6px);
+}
+.col-card {
+  background: #fff; border: 1px solid var(--line-2); border-radius: 24px;
+  padding: 22px 20px 20px; width: 100%; max-width: 380px; max-height: 82vh;
+  display: flex; flex-direction: column;
+  box-shadow: 0 40px 90px -30px rgba(0,0,0,.4);
+}
+.col-head {
+  display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 16px;
+}
+.col-head .t { font-size: 16px; font-weight: 700; color: var(--ink); }
+.col-head .n { font-family: 'Space Mono', monospace; font-size: 12px; color: var(--muted); }
+.col-grid {
+  flex: 1 1 auto; overflow-y: auto; display: grid; grid-template-columns: repeat(4, 1fr);
+  gap: 12px 8px; padding-bottom: 16px; -webkit-overflow-scrolling: touch;
+}
+.col-cell { display: flex; flex-direction: column; align-items: center; gap: 5px; }
+.col-img {
+  position: relative; width: 100%; aspect-ratio: 1; border-radius: 14px; background: var(--card);
+  border: 1px solid var(--line-2); display: flex; align-items: center; justify-content: center;
+  overflow: hidden;
+}
+.col-img.rare { border-color: #C7D8E8; }
+.col-img.epic { border-color: #EACB77; background: #FDFAF0; }
+.col-img img { width: 78%; height: 78%; object-fit: contain; }
+.col-cnt {
+  position: absolute; right: 3px; bottom: 3px; padding: 0 5px; border-radius: 7px;
+  background: var(--ink); color: var(--bg);
+  font-family: 'Space Mono', monospace; font-size: 9px; line-height: 14px;
+}
+.col-cell.locked .col-img { border-style: dashed; }
+.col-q { font-family: 'Space Mono', monospace; font-size: 22px; font-weight: 700; color: var(--muted-2); }
+.col-name { font-size: 10.5px; color: var(--ink-mid); text-align: center; }
+.col-cell.locked .col-name { color: var(--muted-2); }
+.col-card .gbtn { flex: 0 0 auto; }
 
 /* ---------- gate / dialog (off-white) ---------- */
 .gate {
