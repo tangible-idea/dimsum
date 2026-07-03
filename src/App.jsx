@@ -226,7 +226,7 @@ export default function App() {
     setHunger(calcHunger(hg));
   }, []);
 
-  const localTick = useCallback((myId) => {
+  const localTick = useCallback((myId, inc = 1) => {
     const s = localRef.current || { date: todayKey(), today: 0, best: 0, streak: 0, lastActive: null };
     const tk = todayKey();
     if (s.date !== tk) { s.date = tk; s.today = 0; }
@@ -236,7 +236,7 @@ export default function App() {
       s.streak = s.lastActive === y ? (s.streak || 0) + 1 : 1;
       s.lastActive = tk;
     }
-    s.today += 1;
+    s.today += inc;
     if (s.today > s.best) s.best = s.today;
     localRef.current = s;
     try { localStorage.setItem('tc:' + myId, JSON.stringify(s)); } catch { /* ignore */ }
@@ -254,13 +254,15 @@ export default function App() {
   }, []);
 
   // ---- 한 번의 탭(디바이스/화면 공통) → 딤섬 점프 -------------------------
+  // 미리보기 모드는 빠른 테스트용으로 탭당 10×레벨 증가(1레벨 +10, 2레벨 +20 ...)
   const tap = useCallback(() => {
     if (!auth.myId) return;
-    setTotal((t) => { const nv = t + 1; scheduleFlush(auth.myId, nv); return nv; });
-    setDelta24((d) => d + 1);
-    localTick(auth.myId);
+    const inc = previewMode ? 10 * (stageIdx + 1) : 1;
+    setTotal((t) => { const nv = t + inc; scheduleFlush(auth.myId, nv); return nv; });
+    setDelta24((d) => d + inc);
+    localTick(auth.myId, inc);
     setBump((b) => b + 1);
-  }, [auth.myId, scheduleFlush, localTick]);
+  }, [auth.myId, stageIdx, scheduleFlush, localTick]);
 
   // ---- 퀘스트 달성 감지 → 폭죽 -------------------------------------------
   useEffect(() => {
