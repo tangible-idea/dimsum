@@ -5,7 +5,7 @@
 
 export const PALETTE = {
   o: '#433526', // 외곽선
-  b: '#F6E7CB', // 찐빵 몸통
+  b: '#F6E7CB', // 딤섬 몸통
   s: '#E4CCA3', // 그림자(아랫면)
   h: '#FCF4E2', // 하이라이트
   e: '#3A2E22', // 눈
@@ -26,7 +26,7 @@ export const PALETTE = {
 // meta: cx 중심열, headRow 모자 밑단 행, eyeRow/eyeL/eyeR 눈 위치, neckRow 목 장식 밑단 행
 export const STAGES = [
   {
-    min: 0, name: '아기 찐빵', px: 9,
+    min: 0, name: '아기 딤섬', px: 9,
     cx: 7, headRow: 1, eyeRow: 4, eyeL: 4, eyeR: 9, neckRow: 8,
     map: [
       '......oo......',
@@ -43,7 +43,7 @@ export const STAGES = [
     ],
   },
   {
-    min: 500, name: '찐빵 소년', px: 9,
+    min: 500, name: '딤섬 소년', px: 9,
     cx: 9, headRow: 1, eyeRow: 6, eyeL: 5, eyeR: 12, neckRow: 11,
     map: [
       '.......oooo.......',
@@ -63,7 +63,7 @@ export const STAGES = [
     ],
   },
   {
-    min: 5000, name: '왕찐빵', px: 9,
+    min: 5000, name: '왕딤섬', px: 9,
     cx: 10, headRow: 2, eyeRow: 8, eyeL: 5, eyeR: 14, neckRow: 13,
     map: [
       '........oooo........',
@@ -233,7 +233,7 @@ export const ACCESSORIES = [
   },
 ];
 
-// gen 악세서리도 도감/보상 카드에서 미리보기 가능하도록 대표 맵 부여(왕찐빵 기준)
+// gen 악세서리도 도감/보상 카드에서 미리보기 가능하도록 대표 맵 부여(왕딤섬 기준)
 ACCESSORIES.forEach((a) => { if (a.gen && !a.map) a.map = a.gen(STAGES[2]).map; });
 
 export const accById = (id) => ACCESSORIES.find((a) => a.id === id) || null;

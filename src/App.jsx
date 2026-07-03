@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { deviceAuth, deviceCode, deviceRegister, googleLogin, previewMode, supabase } from './lib/supabase';
 import { useRealtime } from './hooks/useRealtime';
 import Gate from './components/Gate';
+import Ranking from './components/Ranking';
 import PixelDimsum, { Sprite } from './components/PixelDimsum';
 import { ACCESSORIES, ACC_RARITY, STAGES, rollAccessory, stageOf } from './lib/pixels';
 
@@ -22,8 +23,6 @@ const questOfDay = () => {
   return QUESTS[h % QUESTS.length];
 };
 
-// 글로벌 랭킹은 game_states RLS(본인+친구 한정)로 클라 계산 불가 → RPC 붙기 전까지 플레이스홀더.
-const RANK_LABEL = '#24 · 상위 8%';
 const initial = (name) => ([...(name || '?')][0] || '?').toUpperCase();
 const SLOT_LABEL = { head: '머리', face: '얼굴', neck: '목' };
 
@@ -81,9 +80,10 @@ function Confetti({ ts }) {
 }
 
 // 아이콘 ----------------------------------------------------------------------
-const IconTarget = (p) => (
-  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" {...p}>
-    <circle cx="12" cy="12" r="3.2" /><circle cx="12" cy="12" r="7.2" strokeDasharray="1.6 2.6" />
+const IconShirt = (p) => (
+  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" {...p}>
+    <path d="M9 4 4.5 6.5 3 10l3 1.2V20h12v-8.8L21 10l-1.5-3.5L15 4" />
+    <path d="M9 4a3 3 0 0 0 6 0" />
   </svg>
 );
 const IconTrophy = (p) => (
@@ -134,6 +134,8 @@ export default function App() {
   const [confettiTs, setConfettiTs] = useState(0);
   const [reward, setReward] = useState(null);    // { stage: 'box'|'open'|'reveal', acc, isNew }
   const [showCol, setShowCol] = useState(false);
+  const [showRank, setShowRank] = useState(false); // 주간 랭킹 패널
+  const [myRank, setMyRank] = useState(null);      // 이번 주 내 순위(등록 시)
   const quest = questOfDay();
 
   const localRef = useRef(null);                 // 로컬 통계 스냅샷
@@ -183,7 +185,7 @@ export default function App() {
     }, 800);
   }, []);
 
-  // ---- 한 번의 탭(디바이스/화면 공통) → 찐빵 점프 -------------------------
+  // ---- 한 번의 탭(디바이스/화면 공통) → 딤섬 점프 -------------------------
   const tap = useCallback(() => {
     if (!auth.myId) return;
     setTotal((t) => { const nv = t + 1; scheduleFlush(auth.myId, nv); return nv; });
@@ -284,7 +286,7 @@ export default function App() {
       setAuth({ ready: true, session: null, myId: 'preview', profile: { nickname: '미리보기' } });
       setGate(null);
       setFriends([]);
-      toast('미리보기 모드예요. 찐빵이를 탭해보세요!');
+      toast('미리보기 모드예요. 딤섬이를 탭해보세요!');
       return;
     }
     if (!deviceCode) { setGate({ state: 'nocode' }); return; }
@@ -306,7 +308,7 @@ export default function App() {
     setAuth({ ready: true, session, myId: session.user.id, profile: res.profile });
     setGate(null);
     loadFriends(res.friends);
-    toast(`${res.profile?.nickname || '반가워요'}, 찐빵이를 키워보세요!`);
+    toast(`${res.profile?.nickname || '반가워요'}, 딤섬이를 키워보세요!`);
   }, [fnError, localLoad, loadFriends, toast]);
   bootRef.current = boot;
 
@@ -343,21 +345,24 @@ export default function App() {
         <div className="tc">
           {/* 상단 바 */}
           <div className="tc-top">
-            <div className="tc-icon"><IconTarget /></div>
-            <div className="tc-brand">DIMSUM PET</div>
             <button className="tc-icon tc-col-btn" onClick={() => setShowCol(true)} aria-label="악세서리 옷장">
-              <IconTrophy />
+              <IconShirt />
               {closetCount > 0 && <span className="tc-col-badge">{closetCount}</span>}
+            </button>
+            <div className="tc-brand">DIMSUM PET</div>
+            <button className="tc-icon" onClick={() => setShowRank(true)} aria-label="주간 랭킹">
+              <IconTrophy />
             </button>
           </div>
 
-          {/* 중앙: 랭킹 / 찐빵 다마고치 / 퀘스트 */}
+          {/* 중앙: 랭킹 / 딤섬 다마고치 / 퀘스트 */}
           <div className="tc-mid">
-            <div className="tc-rank">
-              <span>글로벌 랭킹</span><span className="v">{RANK_LABEL}</span>
-            </div>
+            <button className="tc-rank" onClick={() => setShowRank(true)}>
+              <span>주간 랭킹</span>
+              <span className="v">{myRank ? `#${myRank}` : '기록 등록하고 뽑기권 받기 →'}</span>
+            </button>
 
-            <button className="dj-zone" onClick={tap} aria-label="찐빵이 탭">
+            <button className="dj-zone" onClick={tap} aria-label="딤섬이 탭">
               <div className="dj-count">
                 <span key={bump} className="n pop">{fmt(total)}</span>
                 <span className="d">+{fmt(delta24)} · 24h</span>
@@ -476,7 +481,7 @@ export default function App() {
         <div className="col" onClick={() => setShowCol(false)}>
           <div className="col-card" onClick={(e) => e.stopPropagation()}>
             <div className="col-head">
-              <span className="t">찐빵이 옷장</span>
+              <span className="t">딤섬이 옷장</span>
               <span className="n">{closetCount}/{ACCESSORIES.length}</span>
             </div>
             <div className="col-fit">
@@ -512,6 +517,18 @@ export default function App() {
             <button className="gbtn ghost" onClick={() => setShowCol(false)}>닫기</button>
           </div>
         </div>
+      )}
+
+      {/* 주간/MBTI 랭킹 */}
+      {showRank && (
+        <Ranking
+          myId={auth.myId}
+          total={total}
+          previewMode={previewMode}
+          onClose={() => setShowRank(false)}
+          onMyRank={setMyRank}
+          toast={toast}
+        />
       )}
 
       {gate && (

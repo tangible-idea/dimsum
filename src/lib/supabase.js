@@ -46,5 +46,11 @@ export const usersSearch = (q) =>
 export const friendAdd = (targetUserId) =>
   supabase.functions.invoke('clicker_friend_add', { body: { target_user_id: targetUserId } });
 
+export const rankSubmit = (mbti) =>
+  supabase.functions.invoke('clicker_rank_submit', { body: { mbti } });
+
+export const rankGet = (mbti) =>
+  supabase.functions.invoke('clicker_rank_get', { body: mbti ? { mbti } : {} });
+
 export const updateSlug = (myId, slug) =>
   supabase.from('clicker_profiles').update({ slug }).eq('id', myId).select('slug').single();
