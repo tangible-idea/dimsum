@@ -2,6 +2,8 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { deviceAuth, deviceCode, deviceRegister, googleLogin, previewMode, supabase } from './lib/supabase';
 import { useRealtime } from './hooks/useRealtime';
 import Gate from './components/Gate';
+import PixelDimsum, { Sprite } from './components/PixelDimsum';
+import { ACCESSORIES, ACC_RARITY, STAGES, rollAccessory, stageOf } from './lib/pixels';
 
 const fmt = (n) => (n || 0).toLocaleString('en-US');
 const todayKey = () => new Date().toISOString().slice(0, 10);
@@ -20,49 +22,10 @@ const questOfDay = () => {
   return QUESTS[h % QUESTS.length];
 };
 
-// ---- 수집 캐릭터(딤섬 프렌즈) ---------------------------------------------
-const RARITY = {
-  common: { label: '일반', weight: 70 },
-  rare: { label: '희귀', weight: 25 },
-  epic: { label: '전설', weight: 5 },
-};
-const A = (f) => `/assets/dimsum_${f}.png`;
-const DIMSUM = [
-  { id: 'har_gow', name: '하가우', rarity: 'common', src: A('har_gow') },
-  { id: 'siu_mai', name: '슈마이', rarity: 'common', src: A('siu_mai') },
-  { id: 'char_siu_bao', name: '차슈바오', rarity: 'common', src: A('char_siu_bao') },
-  { id: 'baozi', name: '바오즈', rarity: 'common', src: A('baozi') },
-  { id: 'bao_steamed', name: '찐빵이', rarity: 'common', src: A('bao_steamed') },
-  { id: 'cheung_fun', name: '청펀', rarity: 'common', src: A('cheung_fun') },
-  { id: 'gyoza', name: '교자', rarity: 'common', src: A('gyoza') },
-  { id: 'pan_fried', name: '군만두', rarity: 'common', src: A('pan_fried_dumpling') },
-  { id: 'spring_roll', name: '춘권이', rarity: 'common', src: A('spring_roll') },
-  { id: 'egg_tart_small', name: '미니타르트', rarity: 'common', src: A('egg_tart_small') },
-  { id: 'tea_cup_plain', name: '찻잔이', rarity: 'common', src: A('tea_cup_plain') },
-  { id: 'bamboo_steamer', name: '대나무 찜기', rarity: 'common', src: A('bamboo_steamer_empty') },
-  { id: 'chopsticks', name: '젓가락 형제', rarity: 'common', src: A('chopsticks') },
-  { id: 'xiao_long_bao', name: '샤오롱바오', rarity: 'rare', src: A('xiao_long_bao') },
-  { id: 'bao_sauce', name: '소스바오', rarity: 'rare', src: A('bao_sauce') },
-  { id: 'egg_tart_large', name: '에그타르트', rarity: 'rare', src: A('egg_tart_large') },
-  { id: 'noodle_bowl', name: '누들보울', rarity: 'rare', src: A('noodle_bowl') },
-  { id: 'tofu_bowl', name: '두부보울', rarity: 'rare', src: A('tofu_bowl') },
-  { id: 'tea_cup_floral', name: '꽃찻잔', rarity: 'rare', src: A('tea_cup_floral') },
-  { id: 'teapot_small', name: '꼬마 티팟', rarity: 'rare', src: A('teapot_small') },
-  { id: 'steamer_open', name: '열린 찜기', rarity: 'rare', src: A('steamer_open') },
-  { id: 'teapot_pouring', name: '차 따르는 티팟', rarity: 'epic', src: A('teapot_pouring') },
-  { id: 'teapot_ornate', name: '황금 티팟', rarity: 'epic', src: A('teapot_ornate') },
-  { id: 'gaiwan', name: '가이완 도사', rarity: 'epic', src: A('gaiwan') },
-];
-const rollCharacter = () => {
-  const r = Math.random() * 100;
-  const tier = r < RARITY.epic.weight ? 'epic' : r < RARITY.epic.weight + RARITY.rare.weight ? 'rare' : 'common';
-  const pool = DIMSUM.filter((d) => d.rarity === tier);
-  return pool[Math.floor(Math.random() * pool.length)];
-};
-
 // 글로벌 랭킹은 game_states RLS(본인+친구 한정)로 클라 계산 불가 → RPC 붙기 전까지 플레이스홀더.
 const RANK_LABEL = '#24 · 상위 8%';
 const initial = (name) => ([...(name || '?')][0] || '?').toUpperCase();
+const SLOT_LABEL = { head: '머리', face: '얼굴', neck: '목' };
 
 function Toast({ data }) {
   const [show, setShow] = useState(false);
@@ -117,7 +80,7 @@ function Confetti({ ts }) {
   );
 }
 
-// 아이콘(디자인의 SVG 그대로) ------------------------------------------------
+// 아이콘 ----------------------------------------------------------------------
 const IconTarget = (p) => (
   <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" {...p}>
     <circle cx="12" cy="12" r="3.2" /><circle cx="12" cy="12" r="7.2" strokeDasharray="1.6 2.6" />
@@ -160,15 +123,16 @@ export default function App() {
   const [today, setToday] = useState(0);
   const [best, setBest] = useState(0);
   const [streak, setStreak] = useState(0);
-  const [bump, setBump] = useState(0);          // 숫자 pop 애니메이션 트리거
+  const [bump, setBump] = useState(0);          // 점프/숫자 애니메이션 트리거
   const [delta24, setDelta24] = useState(0);     // 지난 24시간 증가분(세션 근사)
   const [friends, setFriends] = useState([]);    // [{ id, name, score }] — 실제 친구
 
-  // 퀘스트 보상 / 캐릭터 수집
+  // 퀘스트 보상 / 악세서리 옷장
   const [claimed, setClaimed] = useState(false); // 오늘 보상 수령 여부
-  const [collection, setCollection] = useState({}); // { charId: count }
+  const [closet, setCloset] = useState({});      // { accId: count }
+  const [equipped, setEquipped] = useState({});  // { head, face, neck }
   const [confettiTs, setConfettiTs] = useState(0);
-  const [reward, setReward] = useState(null);    // { stage: 'box'|'open'|'reveal', char, isNew }
+  const [reward, setReward] = useState(null);    // { stage: 'box'|'open'|'reveal', acc, isNew }
   const [showCol, setShowCol] = useState(false);
   const quest = questOfDay();
 
@@ -186,8 +150,10 @@ export default function App() {
     localRef.current = s;
     setToday(s.today); setBest(s.best); setStreak(s.streak);
     setClaimed(s.claimed === todayKey());
-    try { setCollection(JSON.parse(localStorage.getItem('tc:col:' + myId)) || {}); }
-    catch { setCollection({}); }
+    try { setCloset(JSON.parse(localStorage.getItem('tc:acc:' + myId)) || {}); }
+    catch { setCloset({}); }
+    try { setEquipped(JSON.parse(localStorage.getItem('tc:eq:' + myId)) || {}); }
+    catch { setEquipped({}); }
   }, []);
 
   const localTick = useCallback((myId) => {
@@ -217,7 +183,7 @@ export default function App() {
     }, 800);
   }, []);
 
-  // ---- 한 번의 탭(디바이스/화면 공통) ------------------------------------
+  // ---- 한 번의 탭(디바이스/화면 공통) → 찐빵 점프 -------------------------
   const tap = useCallback(() => {
     if (!auth.myId) return;
     setTotal((t) => { const nv = t + 1; scheduleFlush(auth.myId, nv); return nv; });
@@ -237,33 +203,43 @@ export default function App() {
     toast('퀘스트 달성! 선물 상자를 열어보세요 🎁');
   }, [today, auth.ready, auth.myId, quest.goal, toast]);
 
-  // ---- 보상 수령(선물상자 → 랜덤 캐릭터) ----------------------------------
+  // ---- 보상 수령(선물상자 → 랜덤 악세서리) --------------------------------
   const questDone = today >= quest.goal;
   const onQuestClick = useCallback(() => {
-    if (questDone && !claimed) setReward({ stage: 'box', char: null });
+    if (questDone && !claimed) setReward({ stage: 'box', acc: null });
     else if (claimed) setShowCol(true);
   }, [questDone, claimed]);
 
   const openBox = useCallback(() => {
-    const char = rollCharacter();
-    const isNew = !collection[char.id];
+    const acc = rollAccessory();
+    const isNew = !closet[acc.id];
     const s = localRef.current;
     if (s) {
       s.claimed = todayKey();
       try { localStorage.setItem('tc:' + auth.myId, JSON.stringify(s)); } catch { /* ignore */ }
     }
     setClaimed(true);
-    setCollection((c) => {
-      const nc = { ...c, [char.id]: (c[char.id] || 0) + 1 };
-      try { localStorage.setItem('tc:col:' + auth.myId, JSON.stringify(nc)); } catch { /* ignore */ }
+    setCloset((c) => {
+      const nc = { ...c, [acc.id]: (c[acc.id] || 0) + 1 };
+      try { localStorage.setItem('tc:acc:' + auth.myId, JSON.stringify(nc)); } catch { /* ignore */ }
       return nc;
     });
-    setReward({ stage: 'open', char, isNew });
+    setReward({ stage: 'open', acc, isNew });
     setTimeout(() => {
       setConfettiTs(Date.now());
-      setReward({ stage: 'reveal', char, isNew });
+      setReward({ stage: 'reveal', acc, isNew });
     }, 750);
-  }, [auth.myId, collection]);
+  }, [auth.myId, closet]);
+
+  // ---- 착용/해제 -----------------------------------------------------------
+  const toggleEquip = useCallback((acc) => {
+    setEquipped((eq) => {
+      const wearing = eq[acc.slot] === acc.id;
+      const ne = { ...eq, [acc.slot]: wearing ? null : acc.id };
+      try { localStorage.setItem('tc:eq:' + auth.myId, JSON.stringify(ne)); } catch { /* ignore */ }
+      return ne;
+    });
+  }, [auth.myId]);
 
   // ---- 친구 점수 로드(친구 game_state 읽기는 RLS 허용) --------------------
   const loadFriends = useCallback(async (rawFriends) => {
@@ -308,7 +284,7 @@ export default function App() {
       setAuth({ ready: true, session: null, myId: 'preview', profile: { nickname: '미리보기' } });
       setGate(null);
       setFriends([]);
-      toast('미리보기 모드예요. 탭을 눌러보세요!');
+      toast('미리보기 모드예요. 찐빵이를 탭해보세요!');
       return;
     }
     if (!deviceCode) { setGate({ state: 'nocode' }); return; }
@@ -330,7 +306,7 @@ export default function App() {
     setAuth({ ready: true, session, myId: session.user.id, profile: res.profile });
     setGate(null);
     loadFriends(res.friends);
-    toast(`${res.profile?.nickname || '반가워요'}, 탭을 시작하세요!`);
+    toast(`${res.profile?.nickname || '반가워요'}, 찐빵이를 키워보세요!`);
   }, [fnError, localLoad, loadFriends, toast]);
   bootRef.current = boot;
 
@@ -348,7 +324,15 @@ export default function App() {
   }, [auth.myId, total]);
 
   const questPct = Math.min(100, Math.round((today / quest.goal) * 100));
-  const colCount = Object.keys(collection).length;
+  const closetCount = Object.keys(closet).length;
+
+  // 성장 단계 + 다음 단계까지 남은 탭
+  const stageIdx = stageOf(total);
+  const stage = STAGES[stageIdx];
+  const nextStage = STAGES[stageIdx + 1];
+  const growthLabel = nextStage
+    ? `다음 성장까지 ${fmt(nextStage.min - total)}탭`
+    : '최고 단계 달성!';
 
   return (
     <>
@@ -360,22 +344,36 @@ export default function App() {
           {/* 상단 바 */}
           <div className="tc-top">
             <div className="tc-icon"><IconTarget /></div>
-            <div className="tc-brand">COUNTER</div>
-            <button className="tc-icon tc-col-btn" onClick={() => setShowCol(true)} aria-label="캐릭터 도감">
+            <div className="tc-brand">DIMSUM PET</div>
+            <button className="tc-icon tc-col-btn" onClick={() => setShowCol(true)} aria-label="악세서리 옷장">
               <IconTrophy />
-              {colCount > 0 && <span className="tc-col-badge">{colCount}</span>}
+              {closetCount > 0 && <span className="tc-col-badge">{closetCount}</span>}
             </button>
           </div>
 
-          {/* 중앙: 랭킹 / 숫자 / 퀘스트 */}
+          {/* 중앙: 랭킹 / 찐빵 다마고치 / 퀘스트 */}
           <div className="tc-mid">
             <div className="tc-rank">
               <span>글로벌 랭킹</span><span className="v">{RANK_LABEL}</span>
             </div>
 
-            <button className="tc-tap" onClick={tap} aria-label="탭">
-              <div key={bump} className="tc-number pop">{fmt(total)}</div>
-              <div className="tc-delta">+{fmt(delta24)} · 지난 24시간</div>
+            <button className="dj-zone" onClick={tap} aria-label="찐빵이 탭">
+              <div className="dj-count">
+                <span key={bump} className="n pop">{fmt(total)}</span>
+                <span className="d">+{fmt(delta24)} · 24h</span>
+              </div>
+              <div className="dj-arena">
+                <div key={bump} className={'dj-jump' + (bump ? ' go' : '')}>
+                  <div className="dj-idle">
+                    <PixelDimsum stageIdx={stageIdx} equipped={equipped} />
+                  </div>
+                </div>
+                <div key={'s' + bump} className={'dj-shadow' + (bump ? ' go' : '')} />
+              </div>
+              <div className="dj-meta">
+                <span className="s">{stage.name}</span>
+                <span className="g">{growthLabel}</span>
+              </div>
             </button>
 
             <button
@@ -395,7 +393,7 @@ export default function App() {
                   <span className="n">{Math.min(today, quest.goal)}/{quest.goal}</span>
                 </div>
                 {questDone && !claimed
-                  ? <div className="tc-quest-cta">탭해서 선물 상자 열기</div>
+                  ? <div className="tc-quest-cta">탭해서 악세서리 상자 열기</div>
                   : questDone && claimed
                     ? <div className="tc-quest-cta dim">내일 새로운 퀘스트가 열려요</div>
                     : <div className="tc-quest-bar"><div style={{ width: questPct + '%' }} /></div>}
@@ -404,11 +402,9 @@ export default function App() {
             </button>
           </div>
 
-          {/* 친구 — 나 + 실제 친구를 점수순 정렬해 상위 5명 표시 */}
+          {/* 친구 — 슬림 스트립(나 + 친구, 점수순 상위 5) */}
           <div className="tc-friends">
-            <div className="tc-friends-head">
-              <span>친구</span><span className="all">전체 ›</span>
-            </div>
+            <span className="tc-friends-lbl">친구</span>
             <div className="tc-friends-row">
               {[{ id: 'me', name: '나', score: total, me: true }, ...friends]
                 .sort((a, b) => b.score - a.score)
@@ -433,7 +429,7 @@ export default function App() {
         </div>
       )}
 
-      {/* 보상: 선물상자 → 랜덤 딤섬 캐릭터 */}
+      {/* 보상: 선물상자 → 랜덤 악세서리 */}
       {reward && (
         <div className="rw" onClick={() => { if (reward.stage === 'reveal') setReward(null); }}>
           {reward.stage === 'box' && (
@@ -450,37 +446,66 @@ export default function App() {
           {reward.stage === 'reveal' && (
             <div className="rw-card" onClick={(e) => e.stopPropagation()}>
               <div className="rw-glow" />
-              <img className="rw-char" src={reward.char.src} alt={reward.char.name} />
-              <div className={'rw-rarity ' + reward.char.rarity}>{RARITY[reward.char.rarity].label}</div>
-              <div className="rw-name">{reward.char.name}</div>
-              <div className="rw-sub">
-                {reward.isNew ? '새로운 딤섬 프렌즈를 만났어요!' : `또 만났네요! (${collection[reward.char.id] || 1}번째)`}
+              <div className="rw-char rw-acc">
+                <Sprite
+                  map={reward.acc.map}
+                  px={Math.max(8, Math.floor(120 / reward.acc.map[0].length))}
+                />
               </div>
-              <button className="gbtn" onClick={() => setReward(null)}>컬렉션에 담기</button>
+              <div className={'rw-rarity ' + reward.acc.rarity}>
+                {ACC_RARITY[reward.acc.rarity].label} · {SLOT_LABEL[reward.acc.slot]}
+              </div>
+              <div className="rw-name">{reward.acc.name}</div>
+              <div className="rw-sub">
+                {reward.isNew ? '새로운 악세서리를 얻었어요!' : `또 얻었네요! (${closet[reward.acc.id] || 1}개째)`}
+              </div>
+              <button
+                className="gbtn"
+                onClick={() => { toggleEquip(reward.acc); setReward(null); toast(`${reward.acc.name} 착용!`); }}
+              >
+                바로 착용하기
+              </button>
+              <button className="gbtn ghost" onClick={() => setReward(null)}>옷장에 넣기</button>
             </div>
           )}
         </div>
       )}
 
-      {/* 캐릭터 도감 */}
+      {/* 악세서리 옷장(탭하면 착용/해제) */}
       {showCol && (
         <div className="col" onClick={() => setShowCol(false)}>
           <div className="col-card" onClick={(e) => e.stopPropagation()}>
             <div className="col-head">
-              <span className="t">딤섬 프렌즈 도감</span>
-              <span className="n">{colCount}/{DIMSUM.length}</span>
+              <span className="t">찐빵이 옷장</span>
+              <span className="n">{closetCount}/{ACCESSORIES.length}</span>
+            </div>
+            <div className="col-fit">
+              <PixelDimsum stageIdx={stageIdx} equipped={equipped} px={6} />
+              <div className="col-fit-txt">
+                <b>{stage.name}</b>
+                <span>보유한 악세서리를 탭하면 바로 입어봐요</span>
+              </div>
             </div>
             <div className="col-grid">
-              {DIMSUM.map((d) => {
-                const owned = collection[d.id] > 0;
+              {ACCESSORIES.map((a) => {
+                const owned = closet[a.id] > 0;
+                const wearing = equipped[a.slot] === a.id;
                 return (
-                  <div className={'col-cell' + (owned ? '' : ' locked')} key={d.id}>
-                    <div className={'col-img ' + d.rarity}>
-                      {owned ? <img src={d.src} alt={d.name} /> : <span className="col-q">?</span>}
-                      {collection[d.id] > 1 && <span className="col-cnt">×{collection[d.id]}</span>}
+                  <button
+                    className={'col-cell' + (owned ? '' : ' locked') + (wearing ? ' wearing' : '')}
+                    key={a.id}
+                    onClick={() => { if (owned) toggleEquip(a); }}
+                    disabled={!owned}
+                  >
+                    <div className={'col-img ' + a.rarity}>
+                      {owned
+                        ? <Sprite map={a.map} px={6} style={{ width: '72%', height: '58%' }} />
+                        : <span className="col-q">?</span>}
+                      {closet[a.id] > 1 && <span className="col-cnt">×{closet[a.id]}</span>}
+                      {wearing && <span className="col-on">착용</span>}
                     </div>
-                    <div className="col-name">{owned ? d.name : '???'}</div>
-                  </div>
+                    <div className="col-name">{owned ? a.name : '???'}</div>
+                  </button>
                 );
               })}
             </div>
