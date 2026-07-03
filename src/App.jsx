@@ -553,7 +553,7 @@ export default function App() {
               {!nextStage ? (
                 <span className="t">최고 단계 달성! 🏆</span>
               ) : growReady ? (
-                <span className="t">배가 고픈가 봐요! 먹이를 골라주세요 🍽️</span>
+                <span className="t">성장 직전이에요! 성장먹이를 골라주세요</span>
               ) : (
                 <span className="lbl">{growthPhrase(growPct)}</span>
               )}
