@@ -29,7 +29,8 @@ export function Sprite({ map, px = 10, style }) {
 }
 
 // 성장 단계 + 착용 악세서리 합성 캐릭터
-export default function PixelDimsum({ stageIdx, equipped = {}, px }) {
+//   mood: 'ok' | 'hungry' | 'starving' — 배고프면 볼터치가 사라지고 입꼬리가 처짐
+export default function PixelDimsum({ stageIdx, equipped = {}, px, mood = 'ok' }) {
   const stage = STAGES[stageIdx] || STAGES[0];
   const scale = px || stage.px;
 
@@ -51,6 +52,25 @@ export default function PixelDimsum({ stageIdx, equipped = {}, px }) {
     };
   }, [stage, equipped]);
 
+  // 표정 패치: 색상 기준으로 입/볼/눈 픽셀을 찾아 변형
+  const drawn = useMemo(() => {
+    if (mood === 'ok') return rects;
+    const mouth = rects.filter((r) => r.c === PALETTE.m);
+    let out = rects.filter((r) => r.c !== PALETTE.c);      // 볼터치 제거(창백해짐)
+    if (mouth.length) {
+      const y = Math.min(...mouth.map((r) => r.y));
+      const xs = mouth.map((r) => r.x);
+      out = out.concat([                                    // 입꼬리 축 처짐(︵)
+        { x: Math.min(...xs) - 1, y: y + 1, c: PALETTE.m },
+        { x: Math.max(...xs) + 1, y: y + 1, c: PALETTE.m },
+      ]);
+    }
+    if (mood === 'starving') {
+      out = out.map((r) => (r.c === PALETTE.e ? { ...r, c: '#8E8577' } : r)); // 눈이 풀림
+    }
+    return out;
+  }, [rects, mood]);
+
   return (
     <svg
       width={w * scale} height={h * scale}
@@ -58,7 +78,7 @@ export default function PixelDimsum({ stageIdx, equipped = {}, px }) {
       style={{ imageRendering: 'pixelated', shapeRendering: 'crispEdges', display: 'block' }}
       aria-hidden
     >
-      {rects.map((r, i) => <rect key={i} x={r.x} y={r.y} width="1" height="1" fill={r.c} />)}
+      {drawn.map((r, i) => <rect key={i} x={r.x} y={r.y} width="1" height="1" fill={r.c} />)}
     </svg>
   );
 }

@@ -253,7 +253,9 @@ export const accPlacement = (stage, acc) => {
   if (acc.gen) return acc.gen(stage);
   const w = acc.map[0].length;
   const h = acc.map.length;
-  const x = stage.cx - Math.floor(w / 2) + (acc.dx || 0);
+  // 몸통 맵은 짝수 폭(실제 중심 = cx - 0.5)이라 정수 배치로는 홀수 폭 악세서리가
+  // 반 픽셀 오른쪽으로 치우침 → 실제 중심 기준으로 배치(SVG라 0.5 오프셋 허용)
+  const x = stage.cx - 0.5 - (w - 1) / 2 + (acc.dx || 0);
   let y;
   if (acc.slot === 'head') y = stage.headRow - h + 1 + (acc.dy || 0);
   else if (acc.slot === 'face') y = stage.eyeRow - 1 + (acc.dy || 0);

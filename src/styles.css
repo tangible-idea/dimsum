@@ -507,3 +507,34 @@ body {
 /* 성장 버튼: 문구만 표시(수치/바 숨김) */
 .dj-grow.ready { justify-content: center; }
 .dj-grow.ready .t { flex: 0 0 auto; text-align: center; }
+
+/* ---------- 배고픔 상태 ---------- */
+.dj-bubble {
+  position: absolute; top: -34px; left: 50%; transform: translateX(-50%);
+  z-index: 2; padding: 6px 12px; border-radius: 14px;
+  background: #fff; border: 1px solid var(--line-2);
+  box-shadow: 0 8px 24px -12px rgba(0,0,0,.25);
+  font-size: 12.5px; white-space: nowrap; color: #B4682A;
+  animation: dj-bubble-in .3s cubic-bezier(.22,.9,.3,1.4), dj-bubble-float 2.4s .3s ease-in-out infinite;
+}
+.dj-bubble::after {
+  content: ''; position: absolute; left: 50%; bottom: -5px; transform: translateX(-50%) rotate(45deg);
+  width: 9px; height: 9px; background: #fff;
+  border-right: 1px solid var(--line-2); border-bottom: 1px solid var(--line-2);
+}
+.dj-bubble.starving { font-size: 16px; color: #4A4A4A; border-color: #D9D4C8; }
+@keyframes dj-bubble-in { from { opacity: 0; transform: translateX(-50%) translateY(6px) scale(.8); } }
+@keyframes dj-bubble-float { 50% { transform: translateX(-50%) translateY(-4px); } }
+
+/* 표정/기력: 배고프면 살짝, 기절 직전이면 확 칙칙해짐 + 축 처진 애니메이션 */
+.dj-idle.hungry { filter: saturate(.82) brightness(.99); }
+.dj-idle.starving { filter: grayscale(.65) brightness(.96); animation: dj-idle 4.6s ease-in-out infinite; }
+
+/* 상태 텍스트(단계 칩 옆) */
+.dj-meta .st { padding: 3px 10px; border-radius: 999px; font-weight: 700; }
+.dj-meta .st.hungry { background: #FBEBD9; color: #C2701F; }
+.dj-meta .st.starving { background: #F6DDDA; color: #B03A2E; }
+
+/* 냉장고 배너 강조 */
+.fr-need-txt b.fr-mood.hungry { color: #C2701F; }
+.fr-need-txt b.fr-mood.starving { color: #B03A2E; }

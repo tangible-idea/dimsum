@@ -49,6 +49,15 @@ const FEED_FAIL_PHRASES = [
   '맛은 있는데 진화는 안 되나 봐요',
   '음… 뭔가 다른 게 먹고 싶어요',
 ];
+
+// ---- 배고픔: 수치는 숨김. {값, 시각}만 저장하고 경과시간으로 지연 계산 ----
+const HUNGER_MAX = 100;
+const HUNGER_RATE = HUNGER_MAX / (24 * 3600 * 1000); // 24시간이면 완전 소진
+const HUNGER_LOW = 35;                               // 이하부터 '배고픔'
+const FEED_RESTORE = 40;                             // 한 번 먹이면 회복량
+const calcHunger = (h) =>
+  Math.max(0, Math.min(HUNGER_MAX, (h?.v ?? HUNGER_MAX) - (Date.now() - (h?.ts ?? Date.now())) * HUNGER_RATE));
+const moodOf = (hunger) => (hunger <= 0 ? 'starving' : hunger <= HUNGER_LOW ? 'hungry' : 'ok');
 const SLOT_LABEL = { head: '머리', face: '얼굴', neck: '목' };
 
 function Toast({ data }) {
@@ -168,10 +177,12 @@ export default function App() {
   const [showRank, setShowRank] = useState(false); // 주간 랭킹 패널
   const [myRank, setMyRank] = useState(null);      // 이번 주 내 순위(등록 시)
 
-  // 냉장고(소비 아이템) / 성장 단계(먹이 진화)
+  // 냉장고(소비 아이템) / 성장 단계(먹이 진화) / 배고픔
   const [fridge, setFridge] = useState({});        // { itemId: count }
   const [showFridge, setShowFridge] = useState(false);
   const [stageIdx, setStageIdx] = useState(0);     // 먹이를 먹어야 다음 단계로 진화
+  const [hunger, setHunger] = useState(HUNGER_MAX);
+  const hungerRef = useRef({ v: HUNGER_MAX, ts: Date.now() });
   const quest = questOfDay();
 
   const localRef = useRef(null);                 // 로컬 통계 스냅샷
@@ -204,6 +215,12 @@ export default function App() {
     let st = parseInt(localStorage.getItem('tc:st:' + myId), 10);
     if (Number.isNaN(st)) st = stageOf(totalNow || 0);
     setStageIdx(Math.min(st, STAGES.length - 1));
+    // 배고픔: {v, ts} 저장값에 경과시간 반영해 지연 계산
+    let hg = null;
+    try { hg = JSON.parse(localStorage.getItem('tc:hg:' + myId)); } catch { /* ignore */ }
+    if (!hg || typeof hg.v !== 'number') hg = { v: HUNGER_MAX, ts: Date.now() };
+    hungerRef.current = hg;
+    setHunger(calcHunger(hg));
   }, []);
 
   const localTick = useCallback((myId) => {
@@ -353,6 +370,12 @@ export default function App() {
     const gs = res.gameState || {};
     setTotal(gs.coins || 0);
     localLoad(session.user.id, gs.coins || 0);
+    // 배고픔은 서버가 원본: {hunger, hunger_fed_at}에서 경과시간 반영
+    if (gs.hunger_fed_at) {
+      const hg = { v: gs.hunger ?? HUNGER_MAX, ts: Date.parse(gs.hunger_fed_at) };
+      hungerRef.current = hg;
+      setHunger(calcHunger(hg));
+    }
     setAuth({ ready: true, session, myId: session.user.id, profile: res.profile });
     setGate(null);
     loadFriends(res.friends);
@@ -373,6 +396,12 @@ export default function App() {
     return () => window.removeEventListener('pagehide', flush);
   }, [auth.myId, total]);
 
+  // 배고픔은 시간이 지나며 줄어듦 → 30초마다 다시 계산
+  useEffect(() => {
+    const t = setInterval(() => setHunger(calcHunger(hungerRef.current)), 30000);
+    return () => clearInterval(t);
+  }, []);
+
   const questPct = Math.min(100, Math.round((today / quest.goal) * 100));
   const closetCount = Object.keys(closet).length;
 
@@ -385,24 +414,50 @@ export default function App() {
     ? Math.max(0, Math.min(100, Math.round(((total - stage.min) / (nextStage.min - stage.min)) * 100)))
     : 100;
 
-  // ---- 먹이기: 냉장고에서 직접 고른 재료가 정답이면 진화, 오답이면 소모만 --
+  const mood = moodOf(hunger);
+
+  // ---- 먹이기: 무엇이든 배고픔 회복. 진화 준비 + 정답 재료면 진화까지 -----
+  const setHungerNow = (v) => {
+    const hg = { v: Math.round(Math.max(0, Math.min(HUNGER_MAX, v))), ts: Date.now() };
+    hungerRef.current = hg;
+    try { localStorage.setItem('tc:hg:' + auth.myId, JSON.stringify(hg)); } catch { /* ignore */ }
+    setHunger(hg.v);
+    if (!previewMode && auth.myId) { // 서버 반영은 먹일 때 한 번뿐
+      supabase.from('clicker_game_states')
+        .update({ hunger: hg.v, hunger_fed_at: new Date(hg.ts).toISOString() })
+        .eq('owner_id', auth.myId)
+        .then(({ error }) => { if (error) console.warn('[hunger]', error.message); });
+    }
+  };
+
   const feedItem = (c) => {
-    if (!nextStage || !needFood || !growReady || (fridge[c.id] || 0) <= 0) return;
+    if ((fridge[c.id] || 0) <= 0) return;
     setFridge((f) => {
       const nf = { ...f, [c.id]: Math.max(0, (f[c.id] || 0) - 1) };
       try { localStorage.setItem('tc:fr:' + auth.myId, JSON.stringify(nf)); } catch { /* ignore */ }
       return nf;
     });
-    if (c.id !== needFood.id) {
-      toast(FEED_FAIL_PHRASES[Math.floor(Math.random() * FEED_FAIL_PHRASES.length)]);
+    // 진화 성공: 배도 가득
+    if (growReady && needFood && c.id === needFood.id) {
+      const ni = stageIdx + 1;
+      setStageIdx(ni);
+      try { localStorage.setItem('tc:st:' + auth.myId, String(ni)); } catch { /* ignore */ }
+      setHungerNow(HUNGER_MAX);
+      setShowFridge(false);
+      setConfettiTs(Date.now());
+      toast(`${c.name} 냠냠! ${STAGES[ni].name}(으)로 진화했어요! 🎉`);
       return;
     }
-    const ni = stageIdx + 1;
-    setStageIdx(ni);
-    try { localStorage.setItem('tc:st:' + auth.myId, String(ni)); } catch { /* ignore */ }
-    setShowFridge(false);
-    setConfettiTs(Date.now());
-    toast(`${c.name} 냠냠! ${STAGES[ni].name}(으)로 진화했어요! 🎉`);
+    // 그 외: 배고픔 회복(진화 준비 상태에서 오답이면 실패 문구)
+    const wasStarving = mood === 'starving';
+    setHungerNow(calcHunger(hungerRef.current) + FEED_RESTORE);
+    if (growReady) {
+      toast(FEED_FAIL_PHRASES[Math.floor(Math.random() * FEED_FAIL_PHRASES.length)]);
+    } else if (wasStarving) {
+      toast(`${c.name} 냠냠… 겨우 살아났어요 😮‍💨`);
+    } else {
+      toast(`${c.name} 냠냠! 배가 든든해요`);
+    }
   };
 
   return (
@@ -442,15 +497,22 @@ export default function App() {
                 <span className="d">+{fmt(delta24)} · 24h</span>
               </div>
               <div className="dj-arena">
+                {mood !== 'ok' && (
+                  <div className={'dj-bubble ' + mood}>
+                    {mood === 'starving' ? '💀' : '🍖 배고파요…'}
+                  </div>
+                )}
                 <div key={bump} className={'dj-jump' + (bump ? ' go' : '')}>
-                  <div className="dj-idle">
-                    <PixelDimsum stageIdx={stageIdx} equipped={equipped} />
+                  <div className={'dj-idle' + (mood !== 'ok' ? ' ' + mood : '')}>
+                    <PixelDimsum stageIdx={stageIdx} equipped={equipped} mood={mood} />
                   </div>
                 </div>
                 <div key={'s' + bump} className={'dj-shadow' + (bump ? ' go' : '')} />
               </div>
               <div className="dj-meta">
                 <span className="s">{stage.name}</span>
+                {mood === 'hungry' && <span className="st hungry">배가 고파요</span>}
+                {mood === 'starving' && <span className="st starving">쓰러지기 직전…</span>}
               </div>
             </button>
 
@@ -635,10 +697,17 @@ export default function App() {
                       <b>진화 준비 완료! 먹이를 직접 골라보세요</b>
                       <span>힌트: {EVOLUTION_HINT[stageIdx]}</span>
                     </>
+                  ) : mood !== 'ok' ? (
+                    <>
+                      <b className={'fr-mood ' + mood}>
+                        {mood === 'starving' ? '💀 쓰러지기 직전이에요!' : '딤섬이가 배고파해요!'}
+                      </b>
+                      <span>무엇이든 먹이면 배가 차요</span>
+                    </>
                   ) : (
                     <>
                       <b>{growthPhrase(growPct)}</b>
-                      <span>아직은 먹일 수 없어요. 조금 더 자란 뒤에 다시 와요!</span>
+                      <span>간식을 먹이면 배고픔이 회복돼요</span>
                     </>
                   )}
                 </div>
@@ -647,7 +716,7 @@ export default function App() {
             <div className="col-grid fr-grid">
               {CONSUMABLES.map((c) => {
                 const cnt = fridge[c.id] || 0;
-                const feedable = growReady && cnt > 0; // 어떤 재료든 먹일 수 있음(오답은 소모만)
+                const feedable = cnt > 0; // 언제든 먹이기 가능(배고픔 회복, 진화 정답이면 진화)
                 return (
                   <button
                     key={c.id}
