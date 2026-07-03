@@ -38,7 +38,7 @@ export default function Gate({ gate, deviceCode, onGoogle, onStart, onRegister, 
           <div className="splash-dance"><PixelDimsum stageIdx={0} px={8} /></div>
           <div className="splash-shadow" />
         </div>
-        <div className="splash-brand">DIMSUM PET</div>
+        <div className="splash-brand">MY DIMSUM</div>
         <p className="splash-msg">{msg || '딤섬이를 깨우는 중...'}</p>
       </div>
     );

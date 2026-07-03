@@ -1,12 +1,13 @@
 import { useMemo } from 'react';
 import { PALETTE, STAGES, accById, accPlacement } from '../lib/pixels';
 
-// 문자 그리드 → SVG rect 목록
-const mapRects = (map, ox = 0, oy = 0) => {
+// 문자 그리드 → SVG rect 목록 (pal: 형태별 몸통 틴트 오버라이드)
+const mapRects = (map, ox = 0, oy = 0, pal) => {
   const rects = [];
   map.forEach((row, y) => {
     [...row].forEach((ch, x) => {
-      if (ch !== '.' && PALETTE[ch]) rects.push({ x: x + ox, y: y + oy, c: PALETTE[ch] });
+      const c = pal?.[ch] || PALETTE[ch];
+      if (ch !== '.' && c) rects.push({ x: x + ox, y: y + oy, c });
     });
   });
   return rects;
@@ -28,14 +29,16 @@ export function Sprite({ map, px = 10, style }) {
   );
 }
 
-// 성장 단계 + 착용 악세서리 합성 캐릭터
+// 성장 단계(레벨×변형) + 착용 악세서리 합성 캐릭터
+//   variant: 진화 때 결정된 변형(0|1)
 //   mood: 'ok' | 'hungry' | 'starving' — 배고프면 볼터치가 사라지고 입꼬리가 처짐
-export default function PixelDimsum({ stageIdx, equipped = {}, px, mood = 'ok' }) {
-  const stage = STAGES[stageIdx] || STAGES[0];
+export default function PixelDimsum({ stageIdx, variant = 0, equipped = {}, px, mood = 'ok' }) {
+  const level = STAGES[stageIdx] || STAGES[0];
+  const stage = level.variants[variant] || level.variants[0];
   const scale = px || stage.px;
 
   const { rects, minX, minY, w, h } = useMemo(() => {
-    const layers = [{ map: stage.map, x: 0, y: 0 }];
+    const layers = [{ map: stage.map, x: 0, y: 0, pal: stage.palette }];
     ['head', 'face', 'neck'].forEach((slot) => {
       const acc = accById(equipped[slot]);
       if (!acc || acc.slot !== slot) return;
@@ -47,7 +50,7 @@ export default function PixelDimsum({ stageIdx, equipped = {}, px, mood = 'ok' }
       x1 = Math.max(x1, l.x + l.map[0].length); y1 = Math.max(y1, l.y + l.map.length);
     });
     return {
-      rects: layers.flatMap((l) => mapRects(l.map, l.x, l.y)),
+      rects: layers.flatMap((l) => mapRects(l.map, l.x, l.y, l.pal)),
       minX: x0, minY: y0, w: x1 - x0, h: y1 - y0,
     };
   }, [stage, equipped]);

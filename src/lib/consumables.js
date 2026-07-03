@@ -38,13 +38,25 @@ export const CONSUMABLES = [
 export const CONSUMABLE_BY_ID = Object.fromEntries(CONSUMABLES.map((c) => [c.id, c]));
 export const consumableSrc = (c) => DIR + c.file;
 
-// 진화 재료: 현재 단계 → 다음 단계로 가기 위해 먹여야 하는 아이템
-//   0(아기 딤섬)→1(딤섬 소년): 우유 / 1→2(왕딤섬): 왕만두
-//   정답은 UI에 노출하지 않고 아래 힌트로만 암시
-export const EVOLUTION_FOOD = { 0: 'milk', 1: 'king_dumpling' };
-export const EVOLUTION_HINT = {
-  0: '갓 태어난 아기가 좋아하는, 하얗고 고소한 음료래요',
-  1: '자기보다 커다란 왕(王)을 동경하고 있대요',
+// 진화 재료: 레벨마다 음식/음료 11종을 순환 (정답은 힌트로만 암시)
+export const EVOLUTION_FOODS = [
+  'milk', 'king_dumpling', 'dumpling', 'jasmine_tea', 'yogurt',
+  'steamed_fish', 'soy_milk', 'condensed', 'goat_milk', 'mini_milk', 'soy_sauce',
+];
+export const evolutionFoodId = (level) => EVOLUTION_FOODS[level % EVOLUTION_FOODS.length];
+
+export const FOOD_HINTS = {
+  milk: '하얗고 고소한 음료가 마시고 싶대요',
+  king_dumpling: '자기보다 커다란 왕(王)을 동경하고 있대요',
+  dumpling: '김이 모락모락 나는 초록 잎사귀 친구가 궁금하대요',
+  jasmine_tea: '향긋한 꽃향기가 나는 따뜻한 것이 마시고 싶대요',
+  yogurt: '새콤하고 걸쭉한 수제 간식을 꿈꾸고 있어요',
+  steamed_fish: '바다에서 온 노란 고명의 요리가 먹고 싶대요',
+  soy_milk: '콩으로 만든 구수한 음료가 당긴대요',
+  condensed: '아주아주 달콤하고 진득한 우유가 필요하대요',
+  goat_milk: '산에서 온 특별한 우유를 마셔보고 싶대요',
+  mini_milk: '작고 귀여운 한 모금이면 충분하대요',
+  soy_sauce: '짭짤한 검은 소스에 콕 찍어 먹고 싶대요',
 };
 
 // 신규 유저 기본 지급(냉장고 시작 구성 — 오답 소모를 감안해 여분 포함)

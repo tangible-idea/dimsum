@@ -22,69 +22,107 @@ export const PALETTE = {
   y: '#F2D06B', // 옐로우
 };
 
-// ---- 성장 단계(총 탭 기준) --------------------------------------------------
-// meta: cx 중심열, headRow 모자 밑단 행, eyeRow/eyeL/eyeR 눈 위치, neckRow 목 장식 밑단 행
-export const STAGES = [
-  {
-    min: 0, name: '아기 딤섬', px: 9,
-    cx: 7, headRow: 1, eyeRow: 4, eyeL: 4, eyeR: 9, neckRow: 8,
-    map: [
-      '......oo......',
-      '....oobboo....',
-      '..oobbbbbboo..',
-      '.obbbbbbbbbbo.',
-      '.obbebbbbebbo.',
-      'obbbbbmmbbbbbo',
-      'obcbbbbbbbbcbo',
-      '.obbbbbbbbbbo.',
-      '.oobbbbbbbboo.',
-      '...obssssbo...',
-      '....oooooo....',
-    ],
-  },
-  {
-    min: 500, name: '딤섬 소년', px: 9,
-    cx: 9, headRow: 1, eyeRow: 6, eyeL: 5, eyeR: 12, neckRow: 11,
-    map: [
-      '.......oooo.......',
-      '.....oobbbboo.....',
-      '....obbbbbbbbo....',
-      '..oobbbbbbbbbboo..',
-      '.obbbbbbbbbbbbbbo.',
-      '.obhbbbbbbbbbbbbo.',
-      'obbbbebbbbbbebbbbo',
-      'obbbbbbbmmbbbbbbbo',
-      'obcbbbbbbbbbbbcbbo',
-      '.obbbbbbbbbbbbbbo.',
-      '.oobbbbbbbbbbbboo.',
-      '..oobbbbbbbbbboo..',
-      '....obssssssbo....',
-      '.....oooooooo.....',
-    ],
-  },
-  {
-    min: 5000, name: '왕딤섬', px: 9,
-    cx: 10, headRow: 2, eyeRow: 8, eyeL: 5, eyeR: 14, neckRow: 13,
-    map: [
-      '........oooo........',
-      '.......obbbbo.......',
-      '.....oobsbbsboo.....',
-      '....obbbbbbbbbbo....',
-      '...obbbbbbbbbbbbo...',
-      '..obbbbbbbbbbbbbbo..',
-      '.obbbbbbbbbbbbbbbbo.',
-      '.obhbbbbbbbbbbbbbbo.',
-      'obbbbebbbbbbbbebbbbo',
-      'obbbbbbbbbbbbbbbbbbo',
-      'obbcbbbbbmmbbbbbcbbo',
-      '.obbbbbbbbbbbbbbbbo.',
-      '.oobbbbbbbbbbbbbboo.',
-      '..oobbbbbbbbbbbboo..',
-      '....oobssssssboo....',
-      '......oooooooo......',
-    ],
-  },
+// ---- 성장 단계: 50레벨 × 변형 2종 = 100형태 프로시저럴 생성 -----------------
+// 각 레벨은 { min, variants: [형태A, 형태B] }.
+// 진화할 때마다 두 변형 중 하나가 랜덤으로 선택된다.
+// 형태 meta: cx 중심열(악세서리 기준), headRow/eyeRow/eyeL/eyeR/neckRow,
+//            palette: 몸통 틴트(b/s/h) 오버라이드
+
+// 변형별 몸통 틴트 [몸통 b, 그림자 s, 하이라이트 h]
+const TINTS = [
+  { b: '#F6E7CB', s: '#E4CCA3', h: '#FCF4E2' }, // 크림
+  { b: '#F9DFD6', s: '#E9BCAC', h: '#FDF0EA' }, // 복숭아
+  { b: '#E3EBD3', s: '#C2D1A6', h: '#F2F7E8' }, // 말차
+  { b: '#EFE0F1', s: '#D3BAD8', h: '#F9F0FA' }, // 타로
+  { b: '#F7E7B9', s: '#E3C97E', h: '#FCF3D9' }, // 커스터드
+  { b: '#F0E4D6', s: '#D8C2A8', h: '#F9F2E9' }, // 통밀
+  { b: '#DCE9EF', s: '#B4CEDC', h: '#EEF6FA' }, // 하늘
+  { b: '#F3D9DF', s: '#DFB3BE', h: '#FAECEF' }, // 벚꽃
 ];
+
+const ADJ = [
+  '아기', '몽글몽글', '말랑', '쫀득', '포동포동', '꼬마', '수줍은', '발랄한', '졸린', '반질반질',
+  '김폴폴', '오동통', '씩씩한', '야무진', '통통', '반짝', '솜사탕', '의젓한', '구름', '달빛',
+  '햇살', '바람', '이슬', '눈꽃', '별빛', '노을', '안개', '미소', '복슬복슬', '동글동글',
+  '늠름한', '용감한', '슬기로운', '재빠른', '느긋한', '단단한', '푸짐한', '고소한', '달콤한', '향긋한',
+  '전설의', '신비한', '우아한', '찬란한', '위대한', '장엄한', '유서깊은', '불멸의', '초월한', '태초의',
+];
+const BASE = ['딤섬', '찐빵', '만두', '바오', '슈마이', '완탕', '하가우', '샤오롱바오', '춘권', '포자'];
+
+// 레벨×변형 → 픽셀 형태 생성
+const genForm = (level, variant) => {
+  const w = 12 + 2 * Math.floor(level * 0.25);            // 12 → 36 (짝수 유지)
+  const h = Math.round(w * 0.8);
+  const rx = (w - 1) / 2;
+  const ry = (h - 1) / 2;
+  const cxF = (w - 1) / 2;                                 // 실제 중심(X.5)
+  const grid = Array.from({ length: h }, () => Array(w).fill('.'));
+
+  // 타원 몸통 (반경을 살짝 키워 첫/끝 행까지 채움)
+  const halfAt = (y) => (rx + 0.3) * Math.sqrt(Math.max(0, 1 - ((y - ry) / (ry + 0.55)) ** 2));
+  for (let y = 0; y < h; y++) {
+    const half = halfAt(y);
+    if (half < 0.5) continue;
+    const x0 = Math.round(cxF - half);
+    const x1 = Math.round(cxF + half);
+    for (let x = x0; x <= x1; x++) grid[y][x] = 'b';
+  }
+  // 외곽선: 바깥과 맞닿은 몸통 픽셀
+  const inBody = (x, y) => y >= 0 && y < h && x >= 0 && x < w && grid[y][x] !== '.';
+  for (let y = 0; y < h; y++) {
+    for (let x = 0; x < w; x++) {
+      if (grid[y][x] === 'b' && (!inBody(x - 1, y) || !inBody(x + 1, y) || !inBody(x, y - 1) || !inBody(x, y + 1))) {
+        grid[y][x] = 'o';
+      }
+    }
+  }
+  // 아랫면 그림자 / 하이라이트
+  for (let x = 0; x < w; x++) if (grid[h - 2][x] === 'b') grid[h - 2][x] = 's';
+  const hx = Math.round(cxF - rx * 0.45);
+  for (let x = hx; x <= hx + 1; x++) if (grid[2]?.[x] === 'b') grid[2][x] = 'h';
+
+  // 얼굴 (표정 패치가 색으로 찾으므로 e/m/c 문자는 공통 팔레트 유지)
+  const eyeRow = Math.round(h * 0.42);
+  const eyeL = Math.round(cxF - Math.max(2, Math.round(w * 0.18)));
+  const eyeR = w - 1 - eyeL;
+  if (grid[eyeRow][eyeL] === 'b') grid[eyeRow][eyeL] = 'e';
+  if (grid[eyeRow][eyeR] === 'b') grid[eyeRow][eyeR] = 'e';
+  const mouthRow = eyeRow + Math.max(1, Math.round(h * 0.12));
+  const mx = Math.floor(cxF);
+  if (grid[mouthRow]?.[mx] === 'b') grid[mouthRow][mx] = 'm';
+  if (grid[mouthRow]?.[mx + 1] === 'b') grid[mouthRow][mx + 1] = 'm';
+  [eyeL - 2, eyeR + 2].forEach((x) => { if (grid[mouthRow]?.[x] === 'b') grid[mouthRow][x] = 'c'; });
+
+  // 변형 장식: 민무늬 / 잎사귀 / 참깨 / 주름 / 꼭지
+  const deco = (level * 2 + variant) % 5;
+  if (deco === 1) { // 잎사귀
+    const lx = Math.round(cxF + 2);
+    [[1, lx], [1, lx + 1], [0, lx + 2], [1, lx + 3]].forEach(([y, x]) => { if (grid[y]?.[x]) grid[y][x] = 'l'; });
+  } else if (deco === 2) { // 참깨
+    [[2, Math.round(cxF)], [eyeRow - 2, Math.round(cxF - 3)], [eyeRow - 2, Math.round(cxF + 3)]]
+      .forEach(([y, x]) => { if (grid[y]?.[x] === 'b') grid[y][x] = 'k'; });
+  } else if (deco === 3) { // 찜기 주름
+    for (let x = 0; x < w; x += 2) if (grid[1][x] === 'b') grid[1][x] = 's';
+  } else if (deco === 4) { // 꼭지(찐빵 매듭)
+    [[1, Math.floor(cxF) - 1], [1, Math.floor(cxF) + 2]].forEach(([y, x]) => { if (grid[y]?.[x] === 'b') grid[y][x] = 's'; });
+  }
+
+  const adjIdx = (level * 2 + variant) % ADJ.length;
+  const baseIdx = Math.floor(level / 5) % BASE.length;
+  return {
+    name: `${ADJ[adjIdx]} ${BASE[baseIdx]}`,
+    px: Math.max(4, Math.min(9, Math.round(120 / h))),
+    cx: w / 2, headRow: 1, eyeRow, eyeL, eyeR,
+    neckRow: Math.round(h * 0.72),
+    palette: TINTS[(level + variant * 3) % TINTS.length],
+    map: grid.map((row) => row.join('')),
+  };
+};
+
+export const STAGES = Array.from({ length: 50 }, (_, level) => ({
+  min: 250 * level * level + 250 * level,   // 0, 500, 1500, 3000, 5000, ...
+  variants: [genForm(level, 0), genForm(level, 1)],
+}));
 
 export const stageOf = (total) => {
   let idx = 0;
@@ -233,8 +271,8 @@ export const ACCESSORIES = [
   },
 ];
 
-// gen 악세서리도 도감/보상 카드에서 미리보기 가능하도록 대표 맵 부여(왕딤섬 기준)
-ACCESSORIES.forEach((a) => { if (a.gen && !a.map) a.map = a.gen(STAGES[2]).map; });
+// gen 악세서리도 도감/보상 카드에서 미리보기 가능하도록 대표 맵 부여(3레벨 A형 기준)
+ACCESSORIES.forEach((a) => { if (a.gen && !a.map) a.map = a.gen(STAGES[2].variants[0]).map; });
 
 export const accById = (id) => ACCESSORIES.find((a) => a.id === id) || null;
 

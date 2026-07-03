@@ -5,7 +5,7 @@ import Gate from './components/Gate';
 import Ranking from './components/Ranking';
 import PixelDimsum, { Sprite } from './components/PixelDimsum';
 import { ACCESSORIES, ACC_RARITY, STAGES, rollAccessory, stageOf } from './lib/pixels';
-import { CONSUMABLES, CONSUMABLE_BY_ID, EVOLUTION_FOOD, EVOLUTION_HINT, STARTER_FRIDGE, consumableSrc } from './lib/consumables';
+import { CONSUMABLES, CONSUMABLE_BY_ID, FOOD_HINTS, STARTER_FRIDGE, consumableSrc, evolutionFoodId } from './lib/consumables';
 
 const fmt = (n) => (n || 0).toLocaleString('en-US');
 const todayKey = () => new Date().toISOString().slice(0, 10);
@@ -180,7 +180,8 @@ export default function App() {
   // 냉장고(소비 아이템) / 성장 단계(먹이 진화) / 배고픔
   const [fridge, setFridge] = useState({});        // { itemId: count }
   const [showFridge, setShowFridge] = useState(false);
-  const [stageIdx, setStageIdx] = useState(0);     // 먹이를 먹어야 다음 단계로 진화
+  const [stageIdx, setStageIdx] = useState(0);     // 먹이를 먹어야 다음 단계로 진화(레벨 0~49)
+  const [variant, setVariant] = useState(0);       // 레벨별 변형(진화 시 2종 중 랜덤)
   const [hunger, setHunger] = useState(HUNGER_MAX);
   const hungerRef = useRef({ v: HUNGER_MAX, ts: Date.now() });
   const quest = questOfDay();
@@ -215,6 +216,8 @@ export default function App() {
     let st = parseInt(localStorage.getItem('tc:st:' + myId), 10);
     if (Number.isNaN(st)) st = stageOf(totalNow || 0);
     setStageIdx(Math.min(st, STAGES.length - 1));
+    const vr = parseInt(localStorage.getItem('tc:vr:' + myId), 10);
+    setVariant(vr === 1 ? 1 : 0);
     // 배고픔: {v, ts} 저장값에 경과시간 반영해 지연 계산
     let hg = null;
     try { hg = JSON.parse(localStorage.getItem('tc:hg:' + myId)); } catch { /* ignore */ }
@@ -382,6 +385,9 @@ export default function App() {
       hungerRef.current = hg;
       setHunger(calcHunger(hg));
     }
+    // 성장 단계/변형도 서버가 원본
+    if (typeof gs.stage === 'number') setStageIdx(Math.max(0, Math.min(STAGES.length - 1, gs.stage)));
+    if (typeof gs.variant === 'number') setVariant(gs.variant === 1 ? 1 : 0);
     loadFriends(res.friends);
     await settle(() => {
       setAuth({ ready: true, session, myId: session.user.id, profile: res.profile });
@@ -413,10 +419,11 @@ export default function App() {
   const questPct = Math.min(100, Math.round((today / quest.goal) * 100));
   const closetCount = Object.keys(closet).length;
 
-  // 성장 단계: 탭 조건 충족 후 진화 재료를 먹이면 다음 단계로
+  // 성장 단계: 탭 조건 충족 후 진화 재료를 먹이면 다음 단계로(변형은 랜덤 결정)
   const stage = STAGES[stageIdx];
+  const form = stage.variants[variant] || stage.variants[0];
   const nextStage = STAGES[stageIdx + 1];
-  const needFood = nextStage ? CONSUMABLE_BY_ID[EVOLUTION_FOOD[stageIdx]] : null;
+  const needFood = nextStage ? CONSUMABLE_BY_ID[evolutionFoodId(stageIdx)] : null;
   const growReady = !!nextStage && total >= nextStage.min;
   const growPct = nextStage
     ? Math.max(0, Math.min(100, Math.round(((total - stage.min) / (nextStage.min - stage.min)) * 100)))
@@ -448,12 +455,23 @@ export default function App() {
     // 진화 성공: 배도 가득
     if (growReady && needFood && c.id === needFood.id) {
       const ni = stageIdx + 1;
+      const nv = Math.random() < 0.5 ? 0 : 1;          // 두 변형 중 랜덤 진화
       setStageIdx(ni);
-      try { localStorage.setItem('tc:st:' + auth.myId, String(ni)); } catch { /* ignore */ }
+      setVariant(nv);
+      try {
+        localStorage.setItem('tc:st:' + auth.myId, String(ni));
+        localStorage.setItem('tc:vr:' + auth.myId, String(nv));
+      } catch { /* ignore */ }
+      if (!previewMode && auth.myId) {                  // 진화할 때마다 서버 저장
+        supabase.from('clicker_game_states')
+          .update({ stage: ni, variant: nv })
+          .eq('owner_id', auth.myId)
+          .then(({ error }) => { if (error) console.warn('[stage]', error.message); });
+      }
       setHungerNow(HUNGER_MAX);
       setShowFridge(false);
       setConfettiTs(Date.now());
-      toast(`${c.name} 냠냠! ${STAGES[ni].name}(으)로 진화했어요! 🎉`);
+      toast(`${c.name} 냠냠! ${STAGES[ni].variants[nv].name}(으)로 진화했어요! 🎉`);
       return;
     }
     // 그 외: 배고픔 회복(진화 준비 상태에서 오답이면 실패 문구)
@@ -481,7 +499,7 @@ export default function App() {
               <IconShirt />
               {closetCount > 0 && <span className="tc-col-badge">{closetCount}</span>}
             </button>
-            <div className="tc-brand">DIMSUM PET</div>
+            <div className="tc-brand">MY DIMSUM</div>
             <div className="tc-actions">
               <button className="tc-icon" onClick={() => setShowFridge(true)} aria-label="냉장고">
                 <IconFridge />
@@ -512,13 +530,13 @@ export default function App() {
                 )}
                 <div key={bump} className={'dj-jump' + (bump ? ' go' : '')}>
                   <div className={'dj-idle' + (mood !== 'ok' ? ' ' + mood : '')}>
-                    <PixelDimsum stageIdx={stageIdx} equipped={equipped} mood={mood} />
+                    <PixelDimsum stageIdx={stageIdx} variant={variant} equipped={equipped} mood={mood} />
                   </div>
                 </div>
                 <div key={'s' + bump} className={'dj-shadow' + (bump ? ' go' : '')} />
               </div>
               <div className="dj-meta">
-                <span className="s">{stage.name}</span>
+                <span className="s">Lv.{stageIdx + 1} {form.name}</span>
                 {mood === 'hungry' && <span className="st hungry">배가 고파요</span>}
                 {mood === 'starving' && <span className="st starving">쓰러지기 직전…</span>}
               </div>
@@ -643,9 +661,9 @@ export default function App() {
               <span className="n">{closetCount}/{ACCESSORIES.length}</span>
             </div>
             <div className="col-fit">
-              <PixelDimsum stageIdx={stageIdx} equipped={equipped} px={6} />
+              <PixelDimsum stageIdx={stageIdx} variant={variant} equipped={equipped} px={6} />
               <div className="col-fit-txt">
-                <b>{stage.name}</b>
+                <b>{form.name}</b>
                 <span>보유한 악세서리를 탭하면 바로 입어봐요</span>
               </div>
             </div>
@@ -703,7 +721,7 @@ export default function App() {
                   {growReady ? (
                     <>
                       <b>진화 준비 완료! 먹이를 직접 골라보세요</b>
-                      <span>힌트: {EVOLUTION_HINT[stageIdx]}</span>
+                      <span>힌트: {FOOD_HINTS[needFood?.id] || '어떤 먹이일까요?'}</span>
                     </>
                   ) : mood !== 'ok' ? (
                     <>
