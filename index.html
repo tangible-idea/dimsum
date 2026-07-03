@@ -4,9 +4,50 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
   <title>클리커 키우기</title>
+  <style>
+    /* React 마운트 전 정적 스플래시 (마운트되면 통째로 교체됨) */
+    html, body { height: 100%; margin: 0; background: #F6F5F0; }
+    .boot-splash {
+      position: fixed; inset: 0; display: flex; flex-direction: column;
+      align-items: center; justify-content: center; background: #F6F5F0;
+      font-family: 'Helvetica Neue', Helvetica, -apple-system, BlinkMacSystemFont,
+        'Apple SD Gothic Neo', 'Pretendard', Arial, sans-serif;
+    }
+    .boot-dance { transform-origin: 50% 100%; animation: boot-dance 1.3s ease-in-out infinite; }
+    @keyframes boot-dance {
+      0%   { transform: translate(0, 0) rotate(0deg) scale(1.05, .92); }
+      12%  { transform: translate(-7px, -18px) rotate(-8deg) scale(.94, 1.08); }
+      25%  { transform: translate(0, 0) rotate(0deg) scale(1.1, .88); }
+      37%  { transform: translate(7px, -18px) rotate(8deg) scale(.94, 1.08); }
+      50%  { transform: translate(0, 0) rotate(0deg) scale(1.05, .92); }
+      62%  { transform: translate(0, -10px) rotate(-5deg) scale(.97, 1.05); }
+      75%  { transform: translate(0, 0) rotate(4deg) scale(1.07, .9); }
+      87%  { transform: translate(0, -10px) rotate(5deg) scale(.97, 1.05); }
+      100% { transform: translate(0, 0) rotate(0deg) scale(1.05, .92); }
+    }
+    .boot-shadow {
+      width: 84px; height: 11px; margin-top: -2px; border-radius: 50%;
+      background: rgba(67, 53, 38, 0.13);
+      animation: boot-shadow 1.3s ease-in-out infinite;
+    }
+    @keyframes boot-shadow {
+      0%, 25%, 50%, 75%, 100% { transform: scaleX(1.12); opacity: 1; }
+      12%, 37%, 62%, 87%      { transform: scaleX(.66); opacity: .55; }
+    }
+    .boot-brand {
+      margin-top: 26px; font-family: 'Space Mono', ui-monospace, monospace;
+      font-size: 12px; letter-spacing: 0.34em; padding-left: 0.34em; color: #B4B0A4;
+    }
+  </style>
 </head>
 <body>
-  <div id="root"></div>
+  <div id="root">
+    <div class="boot-splash">
+      <div class="boot-dance"><svg width="112" height="88" viewBox="0 0 14 11" style="image-rendering:pixelated;shape-rendering:crispEdges"><rect x="6" y="0" width="1" height="1" fill="#433526"/><rect x="7" y="0" width="1" height="1" fill="#433526"/><rect x="4" y="1" width="1" height="1" fill="#433526"/><rect x="5" y="1" width="1" height="1" fill="#433526"/><rect x="6" y="1" width="1" height="1" fill="#F6E7CB"/><rect x="7" y="1" width="1" height="1" fill="#F6E7CB"/><rect x="8" y="1" width="1" height="1" fill="#433526"/><rect x="9" y="1" width="1" height="1" fill="#433526"/><rect x="2" y="2" width="1" height="1" fill="#433526"/><rect x="3" y="2" width="1" height="1" fill="#433526"/><rect x="4" y="2" width="1" height="1" fill="#F6E7CB"/><rect x="5" y="2" width="1" height="1" fill="#F6E7CB"/><rect x="6" y="2" width="1" height="1" fill="#F6E7CB"/><rect x="7" y="2" width="1" height="1" fill="#F6E7CB"/><rect x="8" y="2" width="1" height="1" fill="#F6E7CB"/><rect x="9" y="2" width="1" height="1" fill="#F6E7CB"/><rect x="10" y="2" width="1" height="1" fill="#433526"/><rect x="11" y="2" width="1" height="1" fill="#433526"/><rect x="1" y="3" width="1" height="1" fill="#433526"/><rect x="2" y="3" width="1" height="1" fill="#F6E7CB"/><rect x="3" y="3" width="1" height="1" fill="#F6E7CB"/><rect x="4" y="3" width="1" height="1" fill="#F6E7CB"/><rect x="5" y="3" width="1" height="1" fill="#F6E7CB"/><rect x="6" y="3" width="1" height="1" fill="#F6E7CB"/><rect x="7" y="3" width="1" height="1" fill="#F6E7CB"/><rect x="8" y="3" width="1" height="1" fill="#F6E7CB"/><rect x="9" y="3" width="1" height="1" fill="#F6E7CB"/><rect x="10" y="3" width="1" height="1" fill="#F6E7CB"/><rect x="11" y="3" width="1" height="1" fill="#F6E7CB"/><rect x="12" y="3" width="1" height="1" fill="#433526"/><rect x="1" y="4" width="1" height="1" fill="#433526"/><rect x="2" y="4" width="1" height="1" fill="#F6E7CB"/><rect x="3" y="4" width="1" height="1" fill="#F6E7CB"/><rect x="4" y="4" width="1" height="1" fill="#3A2E22"/><rect x="5" y="4" width="1" height="1" fill="#F6E7CB"/><rect x="6" y="4" width="1" height="1" fill="#F6E7CB"/><rect x="7" y="4" width="1" height="1" fill="#F6E7CB"/><rect x="8" y="4" width="1" height="1" fill="#F6E7CB"/><rect x="9" y="4" width="1" height="1" fill="#3A2E22"/><rect x="10" y="4" width="1" height="1" fill="#F6E7CB"/><rect x="11" y="4" width="1" height="1" fill="#F6E7CB"/><rect x="12" y="4" width="1" height="1" fill="#433526"/><rect x="0" y="5" width="1" height="1" fill="#433526"/><rect x="1" y="5" width="1" height="1" fill="#F6E7CB"/><rect x="2" y="5" width="1" height="1" fill="#F6E7CB"/><rect x="3" y="5" width="1" height="1" fill="#F6E7CB"/><rect x="4" y="5" width="1" height="1" fill="#F6E7CB"/><rect x="5" y="5" width="1" height="1" fill="#F6E7CB"/><rect x="6" y="5" width="1" height="1" fill="#C05B3C"/><rect x="7" y="5" width="1" height="1" fill="#C05B3C"/><rect x="8" y="5" width="1" height="1" fill="#F6E7CB"/><rect x="9" y="5" width="1" height="1" fill="#F6E7CB"/><rect x="10" y="5" width="1" height="1" fill="#F6E7CB"/><rect x="11" y="5" width="1" height="1" fill="#F6E7CB"/><rect x="12" y="5" width="1" height="1" fill="#F6E7CB"/><rect x="13" y="5" width="1" height="1" fill="#433526"/><rect x="0" y="6" width="1" height="1" fill="#433526"/><rect x="1" y="6" width="1" height="1" fill="#F6E7CB"/><rect x="2" y="6" width="1" height="1" fill="#F4B3A3"/><rect x="3" y="6" width="1" height="1" fill="#F6E7CB"/><rect x="4" y="6" width="1" height="1" fill="#F6E7CB"/><rect x="5" y="6" width="1" height="1" fill="#F6E7CB"/><rect x="6" y="6" width="1" height="1" fill="#F6E7CB"/><rect x="7" y="6" width="1" height="1" fill="#F6E7CB"/><rect x="8" y="6" width="1" height="1" fill="#F6E7CB"/><rect x="9" y="6" width="1" height="1" fill="#F6E7CB"/><rect x="10" y="6" width="1" height="1" fill="#F6E7CB"/><rect x="11" y="6" width="1" height="1" fill="#F4B3A3"/><rect x="12" y="6" width="1" height="1" fill="#F6E7CB"/><rect x="13" y="6" width="1" height="1" fill="#433526"/><rect x="1" y="7" width="1" height="1" fill="#433526"/><rect x="2" y="7" width="1" height="1" fill="#F6E7CB"/><rect x="3" y="7" width="1" height="1" fill="#F6E7CB"/><rect x="4" y="7" width="1" height="1" fill="#F6E7CB"/><rect x="5" y="7" width="1" height="1" fill="#F6E7CB"/><rect x="6" y="7" width="1" height="1" fill="#F6E7CB"/><rect x="7" y="7" width="1" height="1" fill="#F6E7CB"/><rect x="8" y="7" width="1" height="1" fill="#F6E7CB"/><rect x="9" y="7" width="1" height="1" fill="#F6E7CB"/><rect x="10" y="7" width="1" height="1" fill="#F6E7CB"/><rect x="11" y="7" width="1" height="1" fill="#F6E7CB"/><rect x="12" y="7" width="1" height="1" fill="#433526"/><rect x="1" y="8" width="1" height="1" fill="#433526"/><rect x="2" y="8" width="1" height="1" fill="#433526"/><rect x="3" y="8" width="1" height="1" fill="#F6E7CB"/><rect x="4" y="8" width="1" height="1" fill="#F6E7CB"/><rect x="5" y="8" width="1" height="1" fill="#F6E7CB"/><rect x="6" y="8" width="1" height="1" fill="#F6E7CB"/><rect x="7" y="8" width="1" height="1" fill="#F6E7CB"/><rect x="8" y="8" width="1" height="1" fill="#F6E7CB"/><rect x="9" y="8" width="1" height="1" fill="#F6E7CB"/><rect x="10" y="8" width="1" height="1" fill="#F6E7CB"/><rect x="11" y="8" width="1" height="1" fill="#433526"/><rect x="12" y="8" width="1" height="1" fill="#433526"/><rect x="3" y="9" width="1" height="1" fill="#433526"/><rect x="4" y="9" width="1" height="1" fill="#F6E7CB"/><rect x="5" y="9" width="1" height="1" fill="#E4CCA3"/><rect x="6" y="9" width="1" height="1" fill="#E4CCA3"/><rect x="7" y="9" width="1" height="1" fill="#E4CCA3"/><rect x="8" y="9" width="1" height="1" fill="#E4CCA3"/><rect x="9" y="9" width="1" height="1" fill="#F6E7CB"/><rect x="10" y="9" width="1" height="1" fill="#433526"/><rect x="4" y="10" width="1" height="1" fill="#433526"/><rect x="5" y="10" width="1" height="1" fill="#433526"/><rect x="6" y="10" width="1" height="1" fill="#433526"/><rect x="7" y="10" width="1" height="1" fill="#433526"/><rect x="8" y="10" width="1" height="1" fill="#433526"/><rect x="9" y="10" width="1" height="1" fill="#433526"/></svg></div>
+      <div class="boot-shadow"></div>
+      <div class="boot-brand">DIMSUM PET</div>
+    </div>
+  </div>
   <script type="module" src="/src/main.jsx"></script>
-ㅇ</body>
+</body>
 </html>

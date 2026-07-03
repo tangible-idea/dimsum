@@ -345,6 +345,12 @@ export default function App() {
   }, [fnError]);
 
   const boot = useCallback(async () => {
+    // 스플래시(춤추는 딤섬)가 최소한 잠깐은 보이도록 게이트 전환을 지연
+    const t0 = Date.now();
+    const settle = async (apply) => {
+      await new Promise((r) => setTimeout(r, Math.max(0, 1100 - (Date.now() - t0))));
+      apply();
+    };
     if (previewMode) { // 로그인 없이 로컬 미리보기
       setTotal(0);
       localLoad('preview', 0);
@@ -354,18 +360,18 @@ export default function App() {
       toast('미리보기 모드예요. 딤섬이를 탭해보세요!');
       return;
     }
-    if (!deviceCode) { setGate({ state: 'nocode' }); return; }
     setGate({ state: 'loading' });
+    if (!deviceCode) { await settle(() => setGate({ state: 'nocode' })); return; }
     const { data: { session } } = await supabase.auth.getSession();
     const { data: res, error } = await deviceAuth();
     if (error || !res) { setGate({ state: 'error', msg: await fnError(error, res, '서버에 연결하지 못했어요.') }); return; }
     if (res.registered === false) {
-      if (res.exists === false) { setGate({ state: 'notfound' }); return; }
-      if (session) { setGate({ state: 'wifi' }); return; }
-      setGate({ state: 'register' }); return;
+      if (res.exists === false) { await settle(() => setGate({ state: 'notfound' })); return; }
+      if (session) { await settle(() => setGate({ state: 'wifi' })); return; }
+      await settle(() => setGate({ state: 'register' })); return;
     }
-    if (res.needsLogin) { setGate({ state: 'login' }); return; }
-    if (res.owner === false) { setGate({ state: 'owned' }); return; }
+    if (res.needsLogin) { await settle(() => setGate({ state: 'login' })); return; }
+    if (res.owner === false) { await settle(() => setGate({ state: 'owned' })); return; }
 
     const gs = res.gameState || {};
     setTotal(gs.coins || 0);
@@ -376,10 +382,12 @@ export default function App() {
       hungerRef.current = hg;
       setHunger(calcHunger(hg));
     }
-    setAuth({ ready: true, session, myId: session.user.id, profile: res.profile });
-    setGate(null);
     loadFriends(res.friends);
-    toast(`${res.profile?.nickname || '반가워요'}, 딤섬이를 키워보세요!`);
+    await settle(() => {
+      setAuth({ ready: true, session, myId: session.user.id, profile: res.profile });
+      setGate(null);
+      toast(`${res.profile?.nickname || '반가워요'}, 딤섬이를 키워보세요!`);
+    });
   }, [fnError, localLoad, loadFriends, toast]);
   bootRef.current = boot;
 

@@ -1,4 +1,5 @@
 // 로그인 / 등록 게이트 오버레이 — Tap Counter (off-white)
+import PixelDimsum from './PixelDimsum';
 
 const LogoTarget = () => (
   <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6">
@@ -29,13 +30,22 @@ const LogoAlert = () => (
 export default function Gate({ gate, deviceCode, onGoogle, onStart, onRegister, onRetry, onDemo, onLogout, onCopy }) {
   const { state, msg, secret } = gate;
 
-  let body = null;
+  // 로딩: 오프화이트 배경에 딤섬이 춤추는 스플래시(라우팅이 끝날 때까지 표시)
   if (state === 'loading') {
-    body = (<>
-      <div className="logo"><LogoTarget /></div><h1>Tap Counter</h1>
-      <div className="spinner" /><p>{msg || '불러오는 중...'}</p>
-    </>);
-  } else if (state === 'register') {
+    return (
+      <div className="splash">
+        <div className="splash-stage">
+          <div className="splash-dance"><PixelDimsum stageIdx={0} px={8} /></div>
+          <div className="splash-shadow" />
+        </div>
+        <div className="splash-brand">DIMSUM PET</div>
+        <p className="splash-msg">{msg || '딤섬이를 깨우는 중...'}</p>
+      </div>
+    );
+  }
+
+  let body = null;
+  if (state === 'register') {
     body = (<>
       <div className="logo"><LogoTarget /></div><h1>처음 오셨네요!</h1>
       <p>이 기기를 내 계정에 등록하려면 구글로 로그인하세요.<br />기기: <b>{deviceCode}</b></p>
