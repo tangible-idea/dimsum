@@ -5,6 +5,7 @@ import Gate from './components/Gate';
 import Ranking from './components/Ranking';
 import PixelDimsum, { Sprite } from './components/PixelDimsum';
 import { ACCESSORIES, ACC_RARITY, STAGES, rollAccessory, stageOf } from './lib/pixels';
+import { CONSUMABLES, CONSUMABLE_BY_ID, EVOLUTION_FOOD, STARTER_FRIDGE, consumableSrc } from './lib/consumables';
 
 const fmt = (n) => (n || 0).toLocaleString('en-US');
 const todayKey = () => new Date().toISOString().slice(0, 10);
@@ -106,6 +107,12 @@ const IconCheck = (p) => (
     <path d="M5 12.5l4.5 4.5L19 7.5" />
   </svg>
 );
+const IconFridge = (p) => (
+  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" {...p}>
+    <rect x="6" y="3" width="12" height="18" rx="2" />
+    <path d="M6 10h12" /><path d="M9 6.5v1.5" /><path d="M9 13v3" />
+  </svg>
+);
 const IconChevron = () => (
   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#C9C5B8" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" style={{ flex: '0 0 auto' }}>
     <path d="M9 6l6 6-6 6" />
@@ -136,13 +143,18 @@ export default function App() {
   const [showCol, setShowCol] = useState(false);
   const [showRank, setShowRank] = useState(false); // 주간 랭킹 패널
   const [myRank, setMyRank] = useState(null);      // 이번 주 내 순위(등록 시)
+
+  // 냉장고(소비 아이템) / 성장 단계(먹이 진화)
+  const [fridge, setFridge] = useState({});        // { itemId: count }
+  const [showFridge, setShowFridge] = useState(false);
+  const [stageIdx, setStageIdx] = useState(0);     // 먹이를 먹어야 다음 단계로 진화
   const quest = questOfDay();
 
   const localRef = useRef(null);                 // 로컬 통계 스냅샷
   const flushTimer = useRef(null);
 
   // ---- 로컬 통계 로드/증가 ----------------------------------------------
-  const localLoad = useCallback((myId) => {
+  const localLoad = useCallback((myId, totalNow) => {
     let s = { date: todayKey(), today: 0, best: 0, streak: 0, lastActive: null };
     try {
       const raw = localStorage.getItem('tc:' + myId);
@@ -156,6 +168,18 @@ export default function App() {
     catch { setCloset({}); }
     try { setEquipped(JSON.parse(localStorage.getItem('tc:eq:' + myId)) || {}); }
     catch { setEquipped({}); }
+    // 냉장고: 처음이면 기본 아이템 지급
+    let fr = null;
+    try { fr = JSON.parse(localStorage.getItem('tc:fr:' + myId)); } catch { /* ignore */ }
+    if (!fr) {
+      fr = { ...STARTER_FRIDGE };
+      try { localStorage.setItem('tc:fr:' + myId, JSON.stringify(fr)); } catch { /* ignore */ }
+    }
+    setFridge(fr);
+    // 성장 단계: 저장값 없으면(기존 유저) 탭수 기준으로 초기화
+    let st = parseInt(localStorage.getItem('tc:st:' + myId), 10);
+    if (Number.isNaN(st)) st = stageOf(totalNow || 0);
+    setStageIdx(Math.min(st, STAGES.length - 1));
   }, []);
 
   const localTick = useCallback((myId) => {
@@ -282,7 +306,7 @@ export default function App() {
   const boot = useCallback(async () => {
     if (previewMode) { // 로그인 없이 로컬 미리보기
       setTotal(0);
-      localLoad('preview');
+      localLoad('preview', 0);
       setAuth({ ready: true, session: null, myId: 'preview', profile: { nickname: '미리보기' } });
       setGate(null);
       setFriends([]);
@@ -304,7 +328,7 @@ export default function App() {
 
     const gs = res.gameState || {};
     setTotal(gs.coins || 0);
-    localLoad(session.user.id);
+    localLoad(session.user.id, gs.coins || 0);
     setAuth({ ready: true, session, myId: session.user.id, profile: res.profile });
     setGate(null);
     loadFriends(res.friends);
@@ -328,13 +352,39 @@ export default function App() {
   const questPct = Math.min(100, Math.round((today / quest.goal) * 100));
   const closetCount = Object.keys(closet).length;
 
-  // 성장 단계 + 다음 단계까지 남은 탭
-  const stageIdx = stageOf(total);
+  // 성장 단계: 탭 조건 충족 후 진화 재료를 먹이면 다음 단계로
   const stage = STAGES[stageIdx];
   const nextStage = STAGES[stageIdx + 1];
-  const growthLabel = nextStage
-    ? `다음 성장까지 ${fmt(nextStage.min - total)}탭`
-    : '최고 단계 달성!';
+  const needFood = nextStage ? CONSUMABLE_BY_ID[EVOLUTION_FOOD[stageIdx]] : null;
+  const growReady = !!nextStage && total >= nextStage.min;
+  const growPct = nextStage
+    ? Math.max(0, Math.min(100, Math.round(((total - stage.min) / (nextStage.min - stage.min)) * 100)))
+    : 100;
+
+  // ---- 먹이기 → 진화 -------------------------------------------------------
+  const feed = () => {
+    if (!nextStage || !needFood) return;
+    if (!growReady) {
+      setShowFridge(true);
+      return;
+    }
+    if ((fridge[needFood.id] || 0) <= 0) {
+      setShowFridge(true);
+      toast(`냉장고에 ${needFood.name}이(가) 없어요`);
+      return;
+    }
+    const ni = stageIdx + 1;
+    setFridge((f) => {
+      const nf = { ...f, [needFood.id]: Math.max(0, (f[needFood.id] || 0) - 1) };
+      try { localStorage.setItem('tc:fr:' + auth.myId, JSON.stringify(nf)); } catch { /* ignore */ }
+      return nf;
+    });
+    setStageIdx(ni);
+    try { localStorage.setItem('tc:st:' + auth.myId, String(ni)); } catch { /* ignore */ }
+    setShowFridge(false);
+    setConfettiTs(Date.now());
+    toast(`${needFood.name} 냠냠! ${STAGES[ni].name}(으)로 진화했어요! 🎉`);
+  };
 
   return (
     <>
@@ -350,9 +400,14 @@ export default function App() {
               {closetCount > 0 && <span className="tc-col-badge">{closetCount}</span>}
             </button>
             <div className="tc-brand">DIMSUM PET</div>
-            <button className="tc-icon" onClick={() => setShowRank(true)} aria-label="주간 랭킹">
-              <IconTrophy />
-            </button>
+            <div className="tc-actions">
+              <button className="tc-icon" onClick={() => setShowFridge(true)} aria-label="냉장고">
+                <IconFridge />
+              </button>
+              <button className="tc-icon" onClick={() => setShowRank(true)} aria-label="주간 랭킹">
+                <IconTrophy />
+              </button>
+            </div>
           </div>
 
           {/* 중앙: 랭킹 / 딤섬 다마고치 / 퀘스트 */}
@@ -377,8 +432,31 @@ export default function App() {
               </div>
               <div className="dj-meta">
                 <span className="s">{stage.name}</span>
-                <span className="g">{growthLabel}</span>
               </div>
+            </button>
+
+            {/* 성장 프로그레스 = 진화 버튼 (재료를 먹이면 진화) */}
+            <button
+              className={'dj-grow' + (growReady ? ' ready' : '') + (nextStage ? '' : ' max')}
+              onClick={feed}
+              disabled={!nextStage}
+            >
+              {!nextStage ? (
+                <span className="t">최고 단계 달성! 🏆</span>
+              ) : growReady ? (
+                <>
+                  <img className="food" src={consumableSrc(needFood)} alt="" />
+                  <span className="t">{needFood.name} 먹이고 진화하기</span>
+                  <span className="n">보유 ×{fridge[needFood.id] || 0}</span>
+                </>
+              ) : (
+                <>
+                  <div className="bar"><div style={{ width: growPct + '%' }} /></div>
+                  <span className="lbl">
+                    다음 성장까지 {fmt(nextStage.min - total)}탭 · 재료 {needFood.name}
+                  </span>
+                </>
+              )}
             </button>
 
             <button
@@ -529,6 +607,56 @@ export default function App() {
           onMyRank={setMyRank}
           toast={toast}
         />
+      )}
+
+      {/* 냉장고(소비 아이템) — 진화 재료 먹이기 */}
+      {showFridge && (
+        <div className="col" onClick={() => setShowFridge(false)}>
+          <div className="col-card" onClick={(e) => e.stopPropagation()}>
+            <div className="col-head">
+              <span className="t">딤섬이 냉장고</span>
+              <span className="n">{Object.values(fridge).reduce((a, b) => a + (b || 0), 0)}개 보유</span>
+            </div>
+            {nextStage && needFood && (
+              <div className="fr-need">
+                <img src={consumableSrc(needFood)} alt="" />
+                <div className="fr-need-txt">
+                  <b>{nextStage.name} 진화 재료 · {needFood.name}</b>
+                  <span>
+                    {growReady
+                      ? ((fridge[needFood.id] || 0) > 0
+                        ? '아이템을 탭해서 바로 먹여보세요!'
+                        : `${needFood.name}이(가) 없어요. 구해와야 해요`)
+                      : `${fmt(nextStage.min - total)}탭 더 모으면 먹일 수 있어요`}
+                  </span>
+                </div>
+              </div>
+            )}
+            <div className="col-grid fr-grid">
+              {CONSUMABLES.map((c) => {
+                const cnt = fridge[c.id] || 0;
+                const isNeed = needFood && c.id === needFood.id;
+                const feedable = isNeed && growReady && cnt > 0;
+                return (
+                  <button
+                    key={c.id}
+                    className={'col-cell' + (cnt > 0 ? '' : ' locked') + (feedable ? ' feedable' : '')}
+                    onClick={() => { if (feedable) feed(); }}
+                    disabled={!feedable}
+                  >
+                    <div className="col-img fr-img">
+                      <img src={consumableSrc(c)} alt={c.name} />
+                      {cnt > 0 && <span className="col-cnt">×{cnt}</span>}
+                      {isNeed && <span className={'fr-tag' + (feedable ? ' go' : '')}>{feedable ? '먹이기' : '진화 재료'}</span>}
+                    </div>
+                    <div className="col-name">{c.name}</div>
+                  </button>
+                );
+              })}
+            </div>
+            <button className="gbtn ghost" onClick={() => setShowFridge(false)}>닫기</button>
+          </div>
+        </div>
       )}
 
       {gate && (
