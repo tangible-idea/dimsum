@@ -40,7 +40,12 @@ export const consumableSrc = (c) => DIR + c.file;
 
 // 진화 재료: 현재 단계 → 다음 단계로 가기 위해 먹여야 하는 아이템
 //   0(아기 딤섬)→1(딤섬 소년): 우유 / 1→2(왕딤섬): 왕만두
+//   정답은 UI에 노출하지 않고 아래 힌트로만 암시
 export const EVOLUTION_FOOD = { 0: 'milk', 1: 'king_dumpling' };
+export const EVOLUTION_HINT = {
+  0: '갓 태어난 아기가 좋아하는, 하얗고 고소한 음료래요',
+  1: '자기보다 커다란 왕(王)을 동경하고 있대요',
+};
 
-// 신규 유저 기본 지급(냉장고 시작 구성)
-export const STARTER_FRIDGE = { milk: 1, king_dumpling: 1 };
+// 신규 유저 기본 지급(냉장고 시작 구성 — 오답 소모를 감안해 여분 포함)
+export const STARTER_FRIDGE = { milk: 2, king_dumpling: 2, dumpling: 1, jasmine_tea: 1 };

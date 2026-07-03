@@ -5,7 +5,7 @@ import Gate from './components/Gate';
 import Ranking from './components/Ranking';
 import PixelDimsum, { Sprite } from './components/PixelDimsum';
 import { ACCESSORIES, ACC_RARITY, STAGES, rollAccessory, stageOf } from './lib/pixels';
-import { CONSUMABLES, CONSUMABLE_BY_ID, EVOLUTION_FOOD, STARTER_FRIDGE, consumableSrc } from './lib/consumables';
+import { CONSUMABLES, CONSUMABLE_BY_ID, EVOLUTION_FOOD, EVOLUTION_HINT, STARTER_FRIDGE, consumableSrc } from './lib/consumables';
 
 const fmt = (n) => (n || 0).toLocaleString('en-US');
 const todayKey = () => new Date().toISOString().slice(0, 10);
@@ -25,6 +25,30 @@ const questOfDay = () => {
 };
 
 const initial = (name) => ([...(name || '?')][0] || '?').toUpperCase();
+
+// 성장 진행도(수치는 숨김) → 말로만 표현. 10% 구간마다 다른 문구.
+const GROWTH_PHRASES = [
+  '이제 막 성장을 시작했어요',
+  '열심히 성장이 필요해요',
+  '오늘도 노력해봐요',
+  '한 탭 한 탭 자라는 중이에요',
+  '다음 성장까지 힘내요',
+  '벌써 절반쯤 자란 것 같아요',
+  '성장 기운이 스멀스멀 느껴져요',
+  '쑥쑥! 잘 크고 있어요',
+  '거의 다 왔어요, 조금만 더!',
+  '다음 성장이 거의 다 왔어요',
+];
+const growthPhrase = (pct) => GROWTH_PHRASES[Math.max(0, Math.min(9, Math.floor(pct / 10)))];
+
+// 잘못된 재료를 먹였을 때(재료는 소모됨)
+const FEED_FAIL_PHRASES = [
+  '이게 아닌 것 같아요..ㅜ',
+  '으엑… 이 맛이 아니에요',
+  '냠냠… 근데 아무 일도 없어요?',
+  '맛은 있는데 진화는 안 되나 봐요',
+  '음… 뭔가 다른 게 먹고 싶어요',
+];
 const SLOT_LABEL = { head: '머리', face: '얼굴', neck: '목' };
 
 function Toast({ data }) {
@@ -361,29 +385,24 @@ export default function App() {
     ? Math.max(0, Math.min(100, Math.round(((total - stage.min) / (nextStage.min - stage.min)) * 100)))
     : 100;
 
-  // ---- 먹이기 → 진화 -------------------------------------------------------
-  const feed = () => {
-    if (!nextStage || !needFood) return;
-    if (!growReady) {
-      setShowFridge(true);
-      return;
-    }
-    if ((fridge[needFood.id] || 0) <= 0) {
-      setShowFridge(true);
-      toast(`냉장고에 ${needFood.name}이(가) 없어요`);
-      return;
-    }
-    const ni = stageIdx + 1;
+  // ---- 먹이기: 냉장고에서 직접 고른 재료가 정답이면 진화, 오답이면 소모만 --
+  const feedItem = (c) => {
+    if (!nextStage || !needFood || !growReady || (fridge[c.id] || 0) <= 0) return;
     setFridge((f) => {
-      const nf = { ...f, [needFood.id]: Math.max(0, (f[needFood.id] || 0) - 1) };
+      const nf = { ...f, [c.id]: Math.max(0, (f[c.id] || 0) - 1) };
       try { localStorage.setItem('tc:fr:' + auth.myId, JSON.stringify(nf)); } catch { /* ignore */ }
       return nf;
     });
+    if (c.id !== needFood.id) {
+      toast(FEED_FAIL_PHRASES[Math.floor(Math.random() * FEED_FAIL_PHRASES.length)]);
+      return;
+    }
+    const ni = stageIdx + 1;
     setStageIdx(ni);
     try { localStorage.setItem('tc:st:' + auth.myId, String(ni)); } catch { /* ignore */ }
     setShowFridge(false);
     setConfettiTs(Date.now());
-    toast(`${needFood.name} 냠냠! ${STAGES[ni].name}(으)로 진화했어요! 🎉`);
+    toast(`${c.name} 냠냠! ${STAGES[ni].name}(으)로 진화했어요! 🎉`);
   };
 
   return (
@@ -435,27 +454,18 @@ export default function App() {
               </div>
             </button>
 
-            {/* 성장 프로그레스 = 진화 버튼 (재료를 먹이면 진화) */}
+            {/* 성장 버튼: 수치·프로그레스 없이 문구로만. 누르면 냉장고에서 재료 선택 */}
             <button
               className={'dj-grow' + (growReady ? ' ready' : '') + (nextStage ? '' : ' max')}
-              onClick={feed}
+              onClick={() => { if (nextStage) setShowFridge(true); }}
               disabled={!nextStage}
             >
               {!nextStage ? (
                 <span className="t">최고 단계 달성! 🏆</span>
               ) : growReady ? (
-                <>
-                  <img className="food" src={consumableSrc(needFood)} alt="" />
-                  <span className="t">{needFood.name} 먹이고 진화하기</span>
-                  <span className="n">보유 ×{fridge[needFood.id] || 0}</span>
-                </>
+                <span className="t">배가 고픈가 봐요! 먹이를 골라주세요 🍽️</span>
               ) : (
-                <>
-                  <div className="bar"><div style={{ width: growPct + '%' }} /></div>
-                  <span className="lbl">
-                    다음 성장까지 {fmt(nextStage.min - total)}탭 · 재료 {needFood.name}
-                  </span>
-                </>
+                <span className="lbl">{growthPhrase(growPct)}</span>
               )}
             </button>
 
@@ -617,37 +627,37 @@ export default function App() {
               <span className="t">딤섬이 냉장고</span>
               <span className="n">{Object.values(fridge).reduce((a, b) => a + (b || 0), 0)}개 보유</span>
             </div>
-            {nextStage && needFood && (
+            {nextStage && (
               <div className="fr-need">
-                <img src={consumableSrc(needFood)} alt="" />
                 <div className="fr-need-txt">
-                  <b>{nextStage.name} 진화 재료 · {needFood.name}</b>
-                  <span>
-                    {growReady
-                      ? ((fridge[needFood.id] || 0) > 0
-                        ? '아이템을 탭해서 바로 먹여보세요!'
-                        : `${needFood.name}이(가) 없어요. 구해와야 해요`)
-                      : `${fmt(nextStage.min - total)}탭 더 모으면 먹일 수 있어요`}
-                  </span>
+                  {growReady ? (
+                    <>
+                      <b>진화 준비 완료! 먹이를 직접 골라보세요</b>
+                      <span>힌트: {EVOLUTION_HINT[stageIdx]}</span>
+                    </>
+                  ) : (
+                    <>
+                      <b>{growthPhrase(growPct)}</b>
+                      <span>아직은 먹일 수 없어요. 조금 더 자란 뒤에 다시 와요!</span>
+                    </>
+                  )}
                 </div>
               </div>
             )}
             <div className="col-grid fr-grid">
               {CONSUMABLES.map((c) => {
                 const cnt = fridge[c.id] || 0;
-                const isNeed = needFood && c.id === needFood.id;
-                const feedable = isNeed && growReady && cnt > 0;
+                const feedable = growReady && cnt > 0; // 어떤 재료든 먹일 수 있음(오답은 소모만)
                 return (
                   <button
                     key={c.id}
                     className={'col-cell' + (cnt > 0 ? '' : ' locked') + (feedable ? ' feedable' : '')}
-                    onClick={() => { if (feedable) feed(); }}
+                    onClick={() => { if (feedable) feedItem(c); }}
                     disabled={!feedable}
                   >
                     <div className="col-img fr-img">
                       <img src={consumableSrc(c)} alt={c.name} />
                       {cnt > 0 && <span className="col-cnt">×{cnt}</span>}
-                      {isNeed && <span className={'fr-tag' + (feedable ? ' go' : '')}>{feedable ? '먹이기' : '진화 재료'}</span>}
                     </div>
                     <div className="col-name">{c.name}</div>
                   </button>

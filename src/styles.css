@@ -503,3 +503,7 @@ body {
 }
 .fr-tag.go { background: var(--ink); color: var(--bg); }
 .col-cell.feedable .col-img { border-color: #E3C98A; box-shadow: 0 0 0 1.5px #E3C98A inset; background: #FCF8EC; }
+
+/* 성장 버튼: 문구만 표시(수치/바 숨김) */
+.dj-grow.ready { justify-content: center; }
+.dj-grow.ready .t { flex: 0 0 auto; text-align: center; }
