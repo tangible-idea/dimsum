@@ -3,10 +3,12 @@ import { useEffect, useRef } from 'react';
 // 딤섬 러너 — Chrome dino 스타일 러너 게임.
 // 화면 탭 / 스페이스 / 실물 클리커 버튼(MQTT 신호 → 'dimsum:device-tap' 이벤트)으로 점프.
 
+// 전용 장애물 스프라이트 — 실루엣이 서로 달라야 난이도가 읽힌다
+// (높고 좁음 / 낮고 넓음 / 중간). h는 인게임 높이(주인공 54px 기준).
 const OBSTACLE_DEFS = [
-  { src: '/assets/dimsum_teapot_small.png', h: 44 },
-  { src: '/assets/dimsum_tea_cup_plain.png', h: 34 },
-  { src: '/assets/dimsum_bamboo_steamer_empty.png', h: 40 },
+  { src: '/assets/obstacles/steamer_stack.png', h: 62 }, // 높고 좁음
+  { src: '/assets/obstacles/chili_dish.png', h: 28 },    // 낮고 넓음
+  { src: '/assets/obstacles/clay_teapot.png', h: 44 },   // 중간
 ];
 
 const GRAVITY = 2600;      // px/s²

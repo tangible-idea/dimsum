@@ -1,0 +1,10 @@
+id,role,type,description,size/ratio,style line ref,source
+steamer_stack,obstacle-tall,sprite,tall narrow stack of four bamboo steamer baskets with steam,57x128 (in-game h=62),STYLE FORMULA v1,higgsfield nano_banana_pro job c39fc1b2-b90d-4102-bcd7-263291f076a2
+chili_dish,obstacle-low,sprite,low wide dish of chili sauce with chopsticks across the rim,128x51 (in-game h=28),STYLE FORMULA v1,higgsfield nano_banana_pro job c39fc1b2-b90d-4102-bcd7-263291f076a2
+clay_teapot,obstacle-mid,sprite,medium round clay teapot with chipped spout,128x91 (in-game h=44),STYLE FORMULA v1,higgsfield nano_banana_pro job c39fc1b2-b90d-4102-bcd7-263291f076a2
+hero_dimsum,player,procedural,current dimsum pet rasterized from PixelDimsum sprite map,variable (in-game h=54),procedural - matches STYLE FORMULA v1,src/lib/pixels.js genForm()
+hero_capture,player-alt,sprite,user photo of a physical clicker toy with background removed,<=48px sprite (in-game h=54),user-supplied photo,src/lib/capture.js cutout()
+
+# STYLE FORMULA v1 (byte-identical across all generated assets)
+# Chunky pixel art with a clean 32x32 grid feel and hard aliased edges, built from rounded compact silhouettes wrapped in thick dark cocoa-brown outlines; the environment reads in steamed-bamboo green and terracotta clay red with warm charcoal shadows, the hero stays pale cream and must pop against every prop, and hazards carry a hot chili-red accent; warm teahouse morning mood with flat ambient light; high contrast between props and backgrounds, clean readable silhouettes, consistent side-view perspective across all assets.
+# Key color: bright blue #0000FF (green taken by bamboo palette, magenta risky against terracotta red)
