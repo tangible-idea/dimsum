@@ -3,6 +3,7 @@ import { deviceAuth, deviceCode, deviceRegister, googleLogin, previewMode, supab
 import { useRealtime } from './hooks/useRealtime';
 import Gate from './components/Gate';
 import Ranking from './components/Ranking';
+import Arcade from './components/Arcade';
 import PixelDimsum, { Sprite } from './components/PixelDimsum';
 import { ACCESSORIES, ACC_RARITY, STAGES, rollAccessory, stageOf } from './lib/pixels';
 import { CONSUMABLES, CONSUMABLE_BY_ID, FOOD_HINTS, STARTER_FRIDGE, consumableSrc, evolutionFoodId } from './lib/consumables';
@@ -146,6 +147,14 @@ const IconFridge = (p) => (
     <path d="M6 10h12" /><path d="M9 6.5v1.5" /><path d="M9 13v3" />
   </svg>
 );
+const IconArcade = (p) => (
+  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" {...p}>
+    <rect x="2" y="7" width="20" height="11" rx="4" />
+    <path d="M7 11v3" /><path d="M5.5 12.5h3" />
+    <circle cx="16" cy="12" r=".9" fill="currentColor" stroke="none" />
+    <circle cx="18.2" cy="14.2" r=".9" fill="currentColor" stroke="none" />
+  </svg>
+);
 const IconChevron = () => (
   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#C9C5B8" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" style={{ flex: '0 0 auto' }}>
     <path d="M9 6l6 6-6 6" />
@@ -175,6 +184,7 @@ export default function App() {
   const [reward, setReward] = useState(null);    // { stage: 'box'|'open'|'reveal', acc, isNew }
   const [showCol, setShowCol] = useState(false);
   const [showRank, setShowRank] = useState(false); // 주간 랭킹 패널
+  const [showArcade, setShowArcade] = useState(false); // 클리커 아케이드(콜렉션+게임)
   const [myRank, setMyRank] = useState(null);      // 이번 주 내 순위(등록 시)
 
   // 냉장고(소비 아이템) / 성장 단계(먹이 진화) / 배고픔
@@ -326,8 +336,11 @@ export default function App() {
     setFriends(list);
   }, []);
 
-  // 내 ESP32 기기 신호 → 탭
-  const onDeviceSignal = useCallback(() => { tap(); }, [tap]);
+  // 내 ESP32 기기 신호 → 탭 + 게임 입력(미니게임이 열려 있으면 점프)
+  const onDeviceSignal = useCallback(() => {
+    tap();
+    window.dispatchEvent(new Event('dimsum:device-tap'));
+  }, [tap]);
   useRealtime({ myId: auth.myId, friends: [], onSignal: () => {}, onDeviceSignal });
 
   // ---- 부팅 / 인증 -------------------------------------------------------
@@ -503,6 +516,9 @@ export default function App() {
             </button>
             <div className="tc-brand">MY DIMSUM</div>
             <div className="tc-actions">
+              <button className="tc-icon" onClick={() => setShowArcade(true)} aria-label="클리커 아케이드">
+                <IconArcade />
+              </button>
               <button className="tc-icon" onClick={() => setShowFridge(true)} aria-label="냉장고">
                 <IconFridge />
               </button>
@@ -706,6 +722,17 @@ export default function App() {
           onClose={() => setShowRank(false)}
           onMyRank={setMyRank}
           toast={toast}
+        />
+      )}
+
+      {/* 클리커 아케이드 — 실물 클리커 콜렉션 + 미니게임 */}
+      {showArcade && (
+        <Arcade
+          myId={auth.myId}
+          stageIdx={stageIdx}
+          variant={variant}
+          toast={toast}
+          onClose={() => setShowArcade(false)}
         />
       )}
 
