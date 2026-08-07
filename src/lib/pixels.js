@@ -50,8 +50,19 @@ const ADJ = [
 const BASE = ['딤섬', '찐빵', '만두', '바오', '슈마이', '완탕', '하가우', '샤오롱바오', '춘권', '포자'];
 
 // 레벨×변형 → 픽셀 형태 생성
+// 성장 단계 수. 8단계 × 변형 2종 = 16형태.
+// 예전엔 50단계였는데, 한 단계당 변화가 거의 안 보이고 최대 레벨이
+// 60만 탭이라 사실상 도달 불가였다. 8단계면 한 번 진화할 때마다
+// 눈에 띄게 달라지고, 마지막 단계도 14,000탭이면 닿는다.
+export const STAGE_COUNT = 8;
+
+const FORM_W_MIN = 12;
+const FORM_W_MAX = 30;
+
 const genForm = (level, variant) => {
-  const w = 12 + 2 * Math.floor(level * 0.25);            // 12 → 36 (짝수 유지)
+  // 마지막 단계에서 FORM_W_MAX가 되도록 단계 수 기준으로 폭을 키운다(짝수 유지)
+  const grow = (FORM_W_MAX - FORM_W_MIN) / 2;
+  const w = FORM_W_MIN + 2 * Math.round((level / (STAGE_COUNT - 1)) * grow);
   const h = Math.round(w * 0.8);
   const rx = (w - 1) / 2;
   const ry = (h - 1) / 2;
@@ -107,8 +118,9 @@ const genForm = (level, variant) => {
     [[1, Math.floor(cxF) - 1], [1, Math.floor(cxF) + 2]].forEach(([y, x]) => { if (grid[y]?.[x] === 'b') grid[y][x] = 's'; });
   }
 
-  const adjIdx = (level * 2 + variant) % ADJ.length;
-  const baseIdx = Math.floor(level / 5) % BASE.length;
+  // 이름은 단계에 걸쳐 고르게 퍼뜨린다(아기 → 전설의). 종류는 단계마다 바뀐다.
+  const adjIdx = (Math.floor((level * ADJ.length) / STAGE_COUNT) + variant) % ADJ.length;
+  const baseIdx = level % BASE.length;
   return {
     name: `${ADJ[adjIdx]} ${BASE[baseIdx]}`,
     px: Math.max(4, Math.min(9, Math.round(120 / h))),
@@ -119,8 +131,9 @@ const genForm = (level, variant) => {
   };
 };
 
-export const STAGES = Array.from({ length: 50 }, (_, level) => ({
-  min: 250 * level * level + 250 * level,   // 0, 500, 1500, 3000, 5000, ...
+// min: 0, 500, 1500, 3000, 5000, 7500, 10500, 14000
+export const STAGES = Array.from({ length: STAGE_COUNT }, (_, level) => ({
+  min: 250 * level * level + 250 * level,
   variants: [genForm(level, 0), genForm(level, 1)],
 }));
 

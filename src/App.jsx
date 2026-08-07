@@ -1,16 +1,17 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { deviceAuth, deviceCode, deviceRegister, googleLogin, previewMode, supabase } from './lib/supabase';
 import { useRealtime } from './hooks/useRealtime';
 import { msgTopic, publish } from './lib/mqtt';
 import { MSG_W, MSG_H } from './lib/bitmap';
 import Gate from './components/Gate';
 import Ranking from './components/Ranking';
-import Arcade from './components/Arcade';
+import DinoGame from './components/DinoGame';
+import TabComms from './components/TabComms';
 import PixelDraw from './components/PixelDraw';
 import PixelView from './components/PixelView';
 import PixelDimsum, { Sprite } from './components/PixelDimsum';
-import { ACCESSORIES, ACC_RARITY, STAGES, rollAccessory, stageOf } from './lib/pixels';
-import { CONSUMABLES, CONSUMABLE_BY_ID, FOOD_HINTS, STARTER_FRIDGE, consumableSrc, evolutionFoodId } from './lib/consumables';
+import { ACCESSORIES, ACC_RARITY, PALETTE, STAGES, rollAccessory, stageOf } from './lib/pixels';
+import { CONSUMABLES, STARTER_FRIDGE, consumableSrc } from './lib/consumables';
 
 const fmt = (n) => (n || 0).toLocaleString('en-US');
 const todayKey = () => new Date().toISOString().slice(0, 10);
@@ -29,8 +30,6 @@ const questOfDay = () => {
   return QUESTS[h % QUESTS.length];
 };
 
-const initial = (name) => ([...(name || '?')][0] || '?').toUpperCase();
-
 // 성장 진행도(수치는 숨김) → 말로만 표현. 10% 구간마다 다른 문구.
 const GROWTH_PHRASES = [
   '이제 막 성장을 시작했어요',
@@ -46,14 +45,27 @@ const GROWTH_PHRASES = [
 ];
 const growthPhrase = (pct) => GROWTH_PHRASES[Math.max(0, Math.min(9, Math.floor(pct / 10)))];
 
-// 잘못된 재료를 먹였을 때(재료는 소모됨)
-const FEED_FAIL_PHRASES = [
-  '이게 아닌 것 같아요..ㅜ',
-  '으엑… 이 맛이 아니에요',
-  '냠냠… 근데 아무 일도 없어요?',
-  '맛은 있는데 진화는 안 되나 봐요',
-  '음… 뭔가 다른 게 먹고 싶어요',
-];
+// 받은 그림 보관 개수(로컬)
+const RECEIVED_MAX = 6;
+
+const TAB_TITLE = { comms: '통신', dimsum: '딤섬', game: '게임' };
+
+// 현재 딤섬이를 미니게임 플레이어 스프라이트(dataURL)로 래스터라이즈
+const dimsumSprite = (stageIdx, variant) => {
+  const level = STAGES[stageIdx] || STAGES[0];
+  const stage = level.variants[variant] || level.variants[0];
+  const map = stage.map;
+  const w = map[0].length;
+  const h = map.length;
+  const cv = document.createElement('canvas');
+  cv.width = w; cv.height = h;
+  const ctx = cv.getContext('2d');
+  map.forEach((row, y) => [...row].forEach((ch, x) => {
+    const c = stage.palette?.[ch] || PALETTE[ch];
+    if (ch !== '.' && c) { ctx.fillStyle = c; ctx.fillRect(x, y, 1, 1); }
+  }));
+  return { img: cv.toDataURL('image/png'), w, h, name: stage.name };
+};
 
 // ---- 배고픔: 수치는 숨김. {값, 시각}만 저장하고 경과시간으로 지연 계산 ----
 const HUNGER_MAX = 100;
@@ -125,12 +137,6 @@ const IconShirt = (p) => (
     <path d="M9 4a3 3 0 0 0 6 0" />
   </svg>
 );
-const IconTrophy = (p) => (
-  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" {...p}>
-    <path d="M8 4h8v4a4 4 0 0 1-8 0V4Z" /><path d="M8 5H5v1.5a3 3 0 0 0 3 3" /><path d="M16 5h3v1.5a3 3 0 0 1-3 3" />
-    <path d="M12 12v4" /><path d="M9.5 19.5h5" /><path d="M11 16h2v3.5h-2z" />
-  </svg>
-);
 const IconGift = ({ size = 20, ...p }) => (
   <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" {...p}>
     <rect x="4" y="11" width="16" height="9" rx="1.6" />
@@ -145,25 +151,58 @@ const IconCheck = (p) => (
     <path d="M5 12.5l4.5 4.5L19 7.5" />
   </svg>
 );
-const IconFridge = (p) => (
-  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" {...p}>
-    <rect x="6" y="3" width="12" height="18" rx="2" />
-    <path d="M6 10h12" /><path d="M9 6.5v1.5" /><path d="M9 13v3" />
-  </svg>
-);
-const IconArcade = (p) => (
-  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" {...p}>
-    <rect x="2" y="7" width="20" height="11" rx="4" />
-    <path d="M7 11v3" /><path d="M5.5 12.5h3" />
-    <circle cx="16" cy="12" r=".9" fill="currentColor" stroke="none" />
-    <circle cx="18.2" cy="14.2" r=".9" fill="currentColor" stroke="none" />
-  </svg>
-);
 const IconChevron = () => (
   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#C9C5B8" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" style={{ flex: '0 0 auto' }}>
     <path d="M9 6l6 6-6 6" />
   </svg>
 );
+
+// 밥그릇 + 김 — 딤섬 탭 주 행동 버튼용
+const IconBowl = () => (
+  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M3.4 11.2h17.2a8.6 8.6 0 0 1-17.2 0Z" />
+    <path d="M9 8.4c0-1.3 1.5-1.6 1.5-3" />
+    <path d="M13.2 8.4c0-1.3 1.5-1.6 1.5-3" />
+  </svg>
+);
+
+// 하단 탭 아이콘 — 나머지 아이콘과 같은 라인 스타일(stroke 1.6, viewBox 24)
+const TabIcon = ({ children }) => (
+  <svg width="23" height="23" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
+    {children}
+  </svg>
+);
+const IconMail = () => (
+  <TabIcon>
+    <rect x="2.5" y="5" width="19" height="14" rx="2.6" />
+    <path d="M3.4 7.6l7.3 5a2.3 2.3 0 0 0 2.6 0l7.3-5" />
+  </TabIcon>
+);
+// 찐만두: 둥근 몸통 + 주름 + 위 매듭. 매듭이 없으면 우산처럼 보인다.
+const IconDumpling = () => (
+  <TabIcon>
+    <path d="M4.3 18.4a7.7 7.7 0 0 1 15.4 0Z" />
+    <path d="M2.6 18.4h18.8" />
+    <path d="M9.5 18.4c0-2.7.4-4.9 1.1-6.4" />
+    <path d="M14.5 18.4c0-2.7-.4-4.9-1.1-6.4" />
+    <circle cx="12" cy="10.4" r="1.35" />
+  </TabIcon>
+);
+const IconGamepad = () => (
+  <TabIcon>
+    <rect x="2.5" y="7.5" width="19" height="10" rx="4.6" />
+    <path d="M7 10.6v2.8" /><path d="M5.6 12h2.8" />
+    <circle cx="16" cy="11.2" r=".95" fill="currentColor" stroke="none" />
+    <circle cx="18.3" cy="13.6" r=".95" fill="currentColor" stroke="none" />
+  </TabIcon>
+);
+
+// 하단 탭 — 라벨을 붙여서 아이콘만 보고 추측하지 않아도 되게 한다
+const TABS = [
+  { id: 'comms', label: '통신', Icon: IconMail },
+  { id: 'dimsum', label: '딤섬', Icon: IconDumpling },
+  { id: 'game', label: '게임', Icon: IconGamepad },
+];
 
 export default function App() {
   const [gate, setGate] = useState({ state: 'loading' });
@@ -188,13 +227,18 @@ export default function App() {
   const [reward, setReward] = useState(null);    // { stage: 'box'|'open'|'reveal', acc, isNew }
   const [showCol, setShowCol] = useState(false);
   const [showRank, setShowRank] = useState(false); // 주간 랭킹 패널
-  const [showArcade, setShowArcade] = useState(false); // 클리커 아케이드(콜렉션+게임)
+  const [playDino, setPlayDino] = useState(false); // 딤섬 러너
   const [myRank, setMyRank] = useState(null);      // 이번 주 내 순위(등록 시)
+
+  // 하단 3탭. 통신이 기본 — 기기가 있어야 성립하는 유일한 기능이라
+  // 앱을 열자마자 보이는 것이 이 제품이 뭔지에 대한 답이 된다.
+  const [tab, setTab] = useState('comms');
 
   // 픽셀 메시지: 보낼 상대 / 받은 그림
   const [msgTarget, setMsgTarget] = useState(null); // { id, name } — 그리기 화면 대상
   const [msgSending, setMsgSending] = useState(false);
-  const [inbox, setInbox] = useState(null);         // 방금 받은 그림 { n, w, h, enc, d }
+  const [inbox, setInbox] = useState(null);         // 크게 보고 있는 그림
+  const [received, setReceived] = useState([]);     // 받은 그림 기록(최신순)
 
   // 냉장고(소비 아이템) / 성장 단계(먹이 진화) / 배고픔
   const [fridge, setFridge] = useState({});        // { itemId: count }
@@ -243,6 +287,9 @@ export default function App() {
     if (!hg || typeof hg.v !== 'number') hg = { v: HUNGER_MAX, ts: Date.now() };
     hungerRef.current = hg;
     setHunger(calcHunger(hg));
+    // 받은 그림 기록
+    try { setReceived(JSON.parse(localStorage.getItem('tc:rx:' + myId)) || []); }
+    catch { setReceived([]); }
   }, []);
 
   const localTick = useCallback((myId, inc = 1) => {
@@ -360,11 +407,16 @@ export default function App() {
   const onMessage = useCallback((m) => {
     if (m?.e === 'ack') { toast(`${m.n || '친구'}님이 그림을 봤어요 ❤️`); return; }
     if (m?.e !== 'msg' || !m.d) return;
-    // 내가 나에게 보낸 그림은 웹에도 그대로 되돌아온다(같은 토픽을 구독하므로).
-    // 방금 그린 그림을 다시 띄울 필요는 없으니 웹 수신함에서만 건너뛴다.
-    // 기기 쪽은 정상적으로 받아서 표시하고, 하트 답장도 그대로 온다.
-    if (m.f && m.f === auth.myId) return;
-    setInbox(m);
+      const item = { ...m, id: 'rx_' + Date.now().toString(36), ts: Date.now() };
+      // 내가 나에게 보낸 그림은 같은 토픽을 구독하므로 웹에도 그대로 되돌아온다.
+      // 방금 그린 걸 크게 다시 띄울 필요는 없어 뷰어만 건너뛴다.
+      // 기기에는 정상적으로 뜨고, '받은 그림' 목록에도 남는다.
+      if (!(m.f && m.f === auth.myId)) setInbox(item);
+      setReceived((r) => {
+        const next = [item, ...r].slice(0, RECEIVED_MAX);
+        try { localStorage.setItem('tc:rx:' + auth.myId, JSON.stringify(next)); } catch { /* ignore */ }
+        return next;
+      });
   }, [toast, auth.myId]);
 
   useRealtime({
@@ -490,17 +542,28 @@ export default function App() {
   const questPct = Math.min(100, Math.round((today / quest.goal) * 100));
   const closetCount = Object.keys(closet).length;
 
-  // 성장 단계: 탭 조건 충족 후 진화 재료를 먹이면 다음 단계로(변형은 랜덤 결정)
+  // 성장 단계: 탭 조건을 채운 뒤 아무 먹이나 주면 다음 단계로(변형은 랜덤 결정).
+  // 예전엔 단계마다 '정답 재료'를 맞혀야 했는데, 오답이면 재료가 소모되고
+  // 획득 경로도 퀘스트뿐이라 초반에 막히는 주범이었다.
   const stage = STAGES[stageIdx];
   const form = stage.variants[variant] || stage.variants[0];
   const nextStage = STAGES[stageIdx + 1];
-  const needFood = nextStage ? CONSUMABLE_BY_ID[evolutionFoodId(stageIdx)] : null;
   const growReady = !!nextStage && total >= nextStage.min;
   const growPct = nextStage
     ? Math.max(0, Math.min(100, Math.round(((total - stage.min) / (nextStage.min - stage.min)) * 100)))
     : 100;
 
   const mood = moodOf(hunger);
+
+  // DinoGame이 character를 effect 의존성으로 쓰므로, 매 렌더 새 객체가 되면
+  // 게임이 계속 리셋된다. 단계/변형이 바뀔 때만 새로 만든다.
+  const dinoChar = useMemo(() => dimsumSprite(stageIdx, variant), [stageIdx, variant]);
+
+  // 친구가 없을 때 내 기기로 보내볼 수 있는 대상. name이 그리기 화면 제목에 쓰인다.
+  const selfTarget = useMemo(
+    () => (auth.myId ? { id: auth.myId, name: '나', me: true } : null),
+    [auth.myId],
+  );
 
   // ---- 먹이기: 무엇이든 배고픔 회복. 진화 준비 + 정답 재료면 진화까지 -----
   const setHungerNow = (v) => {
@@ -523,8 +586,8 @@ export default function App() {
       try { localStorage.setItem('tc:fr:' + auth.myId, JSON.stringify(nf)); } catch { /* ignore */ }
       return nf;
     });
-    // 진화 성공: 배도 가득
-    if (growReady && needFood && c.id === needFood.id) {
+    // 진화 조건을 채웠으면 무엇을 먹이든 진화. 배도 가득 찬다.
+    if (growReady) {
       const ni = stageIdx + 1;
       const nv = Math.random() < 0.5 ? 0 : 1;          // 두 변형 중 랜덤 진화
       setStageIdx(ni);
@@ -545,12 +608,10 @@ export default function App() {
       toast(`${c.name} 냠냠! ${STAGES[ni].variants[nv].name}(으)로 진화했어요! 🎉`);
       return;
     }
-    // 그 외: 배고픔 회복(진화 준비 상태에서 오답이면 실패 문구)
+    // 그 외: 배고픔 회복
     const wasStarving = mood === 'starving';
     setHungerNow(calcHunger(hungerRef.current) + FEED_RESTORE);
-    if (growReady) {
-      toast(FEED_FAIL_PHRASES[Math.floor(Math.random() * FEED_FAIL_PHRASES.length)]);
-    } else if (wasStarving) {
+    if (wasStarving) {
       toast(`${c.name} 냠냠… 겨우 살아났어요 😮‍💨`);
     } else {
       toast(`${c.name} 냠냠! 배가 든든해요`);
@@ -564,129 +625,149 @@ export default function App() {
 
       {!gate && auth.ready && (
         <div className="tc">
-          {/* 상단 바 */}
+          {/* 상단 바 — 탭 이름 + 그 탭에서만 쓰는 보조 버튼 하나 */}
           <div className="tc-top">
-            <button className="tc-icon tc-col-btn" onClick={() => setShowCol(true)} aria-label="악세서리 옷장">
-              <IconShirt />
-              {closetCount > 0 && <span className="tc-col-badge">{closetCount}</span>}
-            </button>
-            <div className="tc-brand">MY DIMSUM</div>
-            <div className="tc-actions">
-              <button className="tc-icon" onClick={() => setShowArcade(true)} aria-label="클리커 아케이드">
-                <IconArcade />
+            <div className="tc-brand">{TAB_TITLE[tab]}</div>
+            {tab === 'dimsum' && (
+              <button className="tc-icon tc-col-btn" onClick={() => setShowCol(true)} aria-label="악세서리 옷장">
+                <IconShirt />
+                {closetCount > 0 && <span className="tc-col-badge">{closetCount}</span>}
               </button>
-              <button className="tc-icon" onClick={() => setShowFridge(true)} aria-label="냉장고">
-                <IconFridge />
-              </button>
-              <button className="tc-icon" onClick={() => setShowRank(true)} aria-label="주간 랭킹">
-                <IconTrophy />
-              </button>
-            </div>
+            )}
           </div>
 
-          {/* 중앙: 랭킹 / 딤섬 다마고치 / 퀘스트 */}
-          <div className="tc-mid">
-            <button className="tc-rank" onClick={() => setShowRank(true)}>
-              <span>주간 랭킹</span>
-              <span className="v">{myRank ? `#${myRank}` : '기록 등록하고 뽑기권 받기 →'}</span>
-            </button>
+          {/* ── 통신 탭 ─────────────────────────────────────────── */}
+          {tab === 'comms' && (
+            <TabComms
+              friends={friends}
+              received={received}
+              me={selfTarget}
+              onPick={setMsgTarget}
+              onOpen={setInbox}
+            />
+          )}
 
-            <button className="dj-zone" onClick={tap} aria-label="딤섬이 탭">
-              <div className="dj-count">
-                <span key={bump} className="n pop">{fmt(total)}</span>
-                <span className="d">+{fmt(delta24)} · 24h</span>
-              </div>
-              <div className="dj-arena">
-                {mood !== 'ok' && (
-                  <div className={'dj-bubble ' + mood}>
-                    {mood === 'starving' ? '💀' : '🍖 배고파요…'}
+          {/* ── 딤섬 탭 ─────────────────────────────────────────── */}
+          {tab === 'dimsum' && (
+            <div className="tc-mid">
+              <button className="dj-zone" onClick={tap} aria-label="딤섬이 탭">
+                <div className="dj-count">
+                  <span key={bump} className="n pop">{fmt(total)}</span>
+                  <span className="d">+{fmt(delta24)} · 24h</span>
+                </div>
+                <div className="dj-arena">
+                  {mood !== 'ok' && (
+                    <div className={'dj-bubble ' + mood}>
+                      {mood === 'starving' ? '💀' : '🍖 배고파요…'}
+                    </div>
+                  )}
+                  <div key={bump} className={'dj-jump' + (bump ? ' go' : '')}>
+                    <div className={'dj-idle' + (mood !== 'ok' ? ' ' + mood : '')}>
+                      <PixelDimsum stageIdx={stageIdx} variant={variant} equipped={equipped} mood={mood} />
+                    </div>
                   </div>
+                  <div key={'s' + bump} className={'dj-shadow' + (bump ? ' go' : '')} />
+                </div>
+                <div className="dj-meta">
+                  <span className="s">Lv.{stageIdx + 1} {form.name}</span>
+                  {mood === 'hungry' && <span className="st hungry">배가 고파요</span>}
+                  {mood === 'starving' && <span className="st starving">쓰러지기 직전…</span>}
+                </div>
+              </button>
+
+              {/* 성장 진행도: 수치 대신 문구로만 */}
+              <div className={'dj-grow' + (growReady ? ' ready' : '') + (nextStage ? '' : ' max')}>
+                {!nextStage ? (
+                  <span className="t">최고 단계 달성! 🏆</span>
+                ) : growReady ? (
+                  <span className="t">성장 직전이에요!</span>
+                ) : (
+                  <span className="lbl">{growthPhrase(growPct)}</span>
                 )}
-                <div key={bump} className={'dj-jump' + (bump ? ' go' : '')}>
-                  <div className={'dj-idle' + (mood !== 'ok' ? ' ' + mood : '')}>
-                    <PixelDimsum stageIdx={stageIdx} variant={variant} equipped={equipped} mood={mood} />
-                  </div>
-                </div>
-                <div key={'s' + bump} className={'dj-shadow' + (bump ? ' go' : '')} />
               </div>
-              <div className="dj-meta">
-                <span className="s">Lv.{stageIdx + 1} {form.name}</span>
-                {mood === 'hungry' && <span className="st hungry">배가 고파요</span>}
-                {mood === 'starving' && <span className="st starving">쓰러지기 직전…</span>}
-              </div>
-            </button>
 
-            {/* 성장 버튼: 수치·프로그레스 없이 문구로만. 누르면 냉장고에서 재료 선택 */}
-            <button
-              className={'dj-grow' + (growReady ? ' ready' : '') + (nextStage ? '' : ' max')}
-              onClick={() => { if (nextStage) setShowFridge(true); }}
-              disabled={!nextStage}
-            >
-              {!nextStage ? (
-                <span className="t">최고 단계 달성! 🏆</span>
-              ) : growReady ? (
-                <span className="t">성장 직전이에요! 성장먹이를 골라주세요</span>
-              ) : (
-                <span className="lbl">{growthPhrase(growPct)}</span>
-              )}
-            </button>
+              {/* 이 탭의 주 행동 하나 */}
+              <button className="tc-primary" onClick={() => setShowFridge(true)}>
+                <IconBowl /> 밥 주기
+              </button>
 
-            <button
-              className={'tc-quest' + (questDone ? (claimed ? ' claimed' : ' done') : '')}
-              onClick={onQuestClick}
-            >
-              <div className="tc-quest-ic">
-                {questDone && claimed ? <IconCheck /> : <IconGift />}
+              <div className="tc-stats">
+                <div className="tc-stat"><div className="v">{fmt(today)}</div><div className="l">오늘</div></div>
+                <div className="tc-stat-div" />
+                <div className="tc-stat"><div className="v">{fmt(best)}</div><div className="l">최고</div></div>
+                <div className="tc-stat-div" />
+                <div className="tc-stat"><div className="v">{streak}일</div><div className="l">연속</div></div>
               </div>
-              <div className="tc-quest-body">
-                <div className="tc-quest-head">
-                  <span className="t">
-                    {questDone
-                      ? (claimed ? '오늘 보상 수령 완료' : '퀘스트 달성! 🎉')
-                      : `오늘의 퀘스트 · ${quest.title}`}
-                  </span>
-                  <span className="n">{Math.min(today, quest.goal)}/{quest.goal}</span>
-                </div>
-                {questDone && !claimed
-                  ? <div className="tc-quest-cta">탭해서 악세서리 상자 열기</div>
-                  : questDone && claimed
-                    ? <div className="tc-quest-cta dim">내일 새로운 퀘스트가 열려요</div>
-                    : <div className="tc-quest-bar"><div style={{ width: questPct + '%' }} /></div>}
-              </div>
-              <IconChevron />
-            </button>
-          </div>
-
-          {/* 친구 — 슬림 스트립(나 + 친구, 점수순 상위 5). 눌러서 그림 보내기.
-              '나'도 실제 user_id를 쓰므로 내 기기로 그림을 보낼 수 있다. */}
-          <div className="tc-friends">
-            <span className="tc-friends-lbl">친구 · 눌러서 그림 보내기</span>
-            <div className="tc-friends-row">
-              {[{ id: auth.myId, name: '나', score: total, me: true }, ...friends]
-                .sort((a, b) => b.score - a.score)
-                .slice(0, 5)
-                .map((f) => (
-                  <button
-                    className="tc-friend"
-                    key={f.me ? 'me' : f.id}
-                    disabled={!f.id}
-                    onClick={() => f.id && setMsgTarget(f)}
-                  >
-                    <div className={'av' + (f.me ? ' me' : '')}>{f.me ? '나' : initial(f.name)}</div>
-                    <div className={'sc' + (f.me ? ' me' : '')}>{fmt(f.score)}</div>
-                  </button>
-                ))}
             </div>
-          </div>
+          )}
 
-          {/* 하단 통계 */}
-          <div className="tc-stats">
-            <div className="tc-stat"><div className="v">{fmt(today)}</div><div className="l">오늘</div></div>
-            <div className="tc-stat-div" />
-            <div className="tc-stat"><div className="v">{fmt(best)}</div><div className="l">최고</div></div>
-            <div className="tc-stat-div" />
-            <div className="tc-stat"><div className="v">{streak}일</div><div className="l">연속</div></div>
-          </div>
+          {/* ── 게임 탭 ─────────────────────────────────────────── */}
+          {tab === 'game' && (
+            <div className="tb">
+              <section className="tb-sec">
+                <h2 className="tb-h">이번 주 랭킹</h2>
+                <button className="tc-rank" onClick={() => setShowRank(true)}>
+                  <span>내 순위</span>
+                  <span className="v">{myRank ? `#${myRank}` : '기록 등록하고 뽑기권 받기 →'}</span>
+                </button>
+              </section>
+
+              <section className="tb-sec">
+                <h2 className="tb-h">오늘의 퀘스트</h2>
+                <button
+                  className={'tc-quest' + (questDone ? (claimed ? ' claimed' : ' done') : '')}
+                  onClick={onQuestClick}
+                >
+                  <div className="tc-quest-ic">
+                    {questDone && claimed ? <IconCheck /> : <IconGift />}
+                  </div>
+                  <div className="tc-quest-body">
+                    <div className="tc-quest-head">
+                      <span className="t">
+                        {questDone
+                          ? (claimed ? '오늘 보상 수령 완료' : '퀘스트 달성! 🎉')
+                          : quest.title}
+                      </span>
+                      <span className="n">{Math.min(today, quest.goal)}/{quest.goal}</span>
+                    </div>
+                    {questDone && !claimed
+                      ? <div className="tc-quest-cta">탭해서 악세서리 상자 열기</div>
+                      : questDone && claimed
+                        ? <div className="tc-quest-cta dim">내일 새로운 퀘스트가 열려요</div>
+                        : <div className="tc-quest-bar"><div style={{ width: questPct + '%' }} /></div>}
+                  </div>
+                  <IconChevron />
+                </button>
+              </section>
+
+              <section className="tb-sec">
+                <h2 className="tb-h">미니게임</h2>
+                <button className="gm-card" onClick={() => setPlayDino(true)}>
+                  {/* 러너에 나가는 캐릭터가 곧 내 딤섬이라 스프라이트를 그대로 쓴다 */}
+                  <img className="gm-ic" src={dinoChar.img} alt="" />
+                  <span className="gm-body">
+                    <b>딤섬 러너</b>
+                    <i>장애물을 폴짝! 실물 클리커 버튼으로도 점프해요</i>
+                  </span>
+                  <IconChevron />
+                </button>
+              </section>
+            </div>
+          )}
+
+          {/* 하단 탭바 */}
+          <nav className="tc-tabs">
+            {TABS.map((t) => (
+              <button
+                key={t.id}
+                className={'tc-tab' + (tab === t.id ? ' on' : '')}
+                onClick={() => setTab(t.id)}
+              >
+                <span className="ic"><t.Icon /></span>
+                <span className="lb">{t.label}</span>
+              </button>
+            ))}
+          </nav>
         </div>
       )}
 
@@ -788,13 +869,11 @@ export default function App() {
       )}
 
       {/* 클리커 아케이드 — 실물 클리커 콜렉션 + 미니게임 */}
-      {showArcade && (
-        <Arcade
+      {playDino && (
+        <DinoGame
           myId={auth.myId}
-          stageIdx={stageIdx}
-          variant={variant}
-          toast={toast}
-          onClose={() => setShowArcade(false)}
+          character={dinoChar}
+          onExit={() => setPlayDino(false)}
         />
       )}
 
@@ -824,8 +903,8 @@ export default function App() {
                 <div className="fr-need-txt">
                   {growReady ? (
                     <>
-                      <b>진화 준비 완료! 먹이를 직접 골라보세요</b>
-                      <span>힌트: {FOOD_HINTS[needFood?.id] || '어떤 먹이일까요?'}</span>
+                      <b>진화 준비 완료!</b>
+                      <span>아무거나 먹이면 다음 단계로 자라요</span>
                     </>
                   ) : mood !== 'ok' ? (
                     <>
