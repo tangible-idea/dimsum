@@ -360,8 +360,12 @@ export default function App() {
   const onMessage = useCallback((m) => {
     if (m?.e === 'ack') { toast(`${m.n || '친구'}님이 그림을 봤어요 ❤️`); return; }
     if (m?.e !== 'msg' || !m.d) return;
+    // 내가 나에게 보낸 그림은 웹에도 그대로 되돌아온다(같은 토픽을 구독하므로).
+    // 방금 그린 그림을 다시 띄울 필요는 없으니 웹 수신함에서만 건너뛴다.
+    // 기기 쪽은 정상적으로 받아서 표시하고, 하트 답장도 그대로 온다.
+    if (m.f && m.f === auth.myId) return;
     setInbox(m);
-  }, [toast]);
+  }, [toast, auth.myId]);
 
   useRealtime({
     myId: auth.myId,
@@ -385,7 +389,7 @@ export default function App() {
         enc,
         d,
       });
-      toast(`${msgTarget.name}님 기기로 보냈어요 ✉️`);
+      toast(msgTarget.me ? '내 기기로 보냈어요 ✉️' : `${msgTarget.name}님 기기로 보냈어요 ✉️`);
       setMsgTarget(null);
     } catch (e) {
       console.warn('[msg]', e?.message || e);
@@ -653,19 +657,20 @@ export default function App() {
             </button>
           </div>
 
-          {/* 친구 — 슬림 스트립(나 + 친구, 점수순 상위 5). 친구를 누르면 그림 보내기 */}
+          {/* 친구 — 슬림 스트립(나 + 친구, 점수순 상위 5). 눌러서 그림 보내기.
+              '나'도 실제 user_id를 쓰므로 내 기기로 그림을 보낼 수 있다. */}
           <div className="tc-friends">
             <span className="tc-friends-lbl">친구 · 눌러서 그림 보내기</span>
             <div className="tc-friends-row">
-              {[{ id: 'me', name: '나', score: total, me: true }, ...friends]
+              {[{ id: auth.myId, name: '나', score: total, me: true }, ...friends]
                 .sort((a, b) => b.score - a.score)
                 .slice(0, 5)
                 .map((f) => (
                   <button
                     className="tc-friend"
-                    key={f.id}
-                    disabled={f.me}
-                    onClick={() => !f.me && setMsgTarget(f)}
+                    key={f.me ? 'me' : f.id}
+                    disabled={!f.id}
+                    onClick={() => f.id && setMsgTarget(f)}
                   >
                     <div className={'av' + (f.me ? ' me' : '')}>{f.me ? '나' : initial(f.name)}</div>
                     <div className={'sc' + (f.me ? ' me' : '')}>{fmt(f.score)}</div>
