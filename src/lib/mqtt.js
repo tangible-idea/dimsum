@@ -1,10 +1,17 @@
 import mqtt from 'mqtt';
 
-// HiveMQ Cloud — 브라우저는 TLS WebSocket(8884) 사용.
-const WSS_URL = import.meta.env.VITE_MQTT_WSS_URL ||
-  'wss://db6292909b794a2eba94ffe10d879db9.s1.eu.hivemq.cloud:8884/mqtt';
-const USERNAME = import.meta.env.VITE_MQTT_USERNAME || 'clickers';
-const PASSWORD = import.meta.env.VITE_MQTT_PASSWORD || '6cCB5q72upQi@qK';
+// EMQX Serverless (AWS 싱가포르) — 브라우저는 TLS WebSocket(8084) 사용.
+// 값은 .env에서만 온다. 기본값을 두지 않는다 — 값이 빠졌을 때 조용히 엉뚱한
+// 브로커에 붙는 것보다 즉시 터지는 편이 낫다. (옛 기본값은 죽은 HiveMQ 주소와
+// 평문 비밀번호를 담고 있었고, 그게 번들에 그대로 실려 나갔다.)
+const WSS_URL = import.meta.env.VITE_MQTT_WSS_URL;
+const USERNAME = import.meta.env.VITE_MQTT_USERNAME;
+const PASSWORD = import.meta.env.VITE_MQTT_PASSWORD;
+
+for (const [k, v] of Object.entries({ VITE_MQTT_WSS_URL: WSS_URL, VITE_MQTT_USERNAME: USERNAME, VITE_MQTT_PASSWORD: PASSWORD })) {
+  if (!v) throw new Error(`${k}가 비어 있습니다. .env를 만들었나요? (.env.example 참고)`);
+  if (/^your-/.test(v)) throw new Error(`${k}가 아직 .env.example의 템플릿 값입니다.`);
+}
 
 // 유저별 피드 토픽: 본인이 publish, 친구들이 subscribe.
 export const feedTopic = (userId) => `clicker/feed/${userId}`;
