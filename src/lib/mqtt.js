@@ -12,6 +12,11 @@ export const feedTopic = (userId) => `clicker/feed/${userId}`;
 // 제어 토픽: 웹이 publish, 내 ESP32가 subscribe (게임 시작 등).
 export const ctrlTopic = (userId) => `clicker/ctrl/${userId}`;
 
+// 메시지 토픽: 특정 상대에게만 보내는 픽셀 그림.
+// 보내는 쪽이 상대 id로 publish → 상대 기기와 상대 웹이 subscribe.
+export const msgTopic = (userId) => `clicker/msg/${userId}`;
+export const MSG_PREFIX = 'clicker/msg/';
+
 // 토픽 끝의 userId 추출.
 export const userIdFromTopic = (topic) => topic.slice(topic.lastIndexOf('/') + 1);
 

@@ -172,7 +172,12 @@ body {
   overflow-x: auto; -webkit-overflow-scrolling: touch; scrollbar-width: none;
 }
 .tc-friends-row::-webkit-scrollbar { display: none; }
-.tc-friend { display: flex; flex-direction: column; align-items: center; gap: 3px; flex: 0 0 auto; }
+.tc-friend {
+  display: flex; flex-direction: column; align-items: center; gap: 3px; flex: 0 0 auto;
+  background: none; border: 0; padding: 0; font: inherit; cursor: pointer;
+}
+.tc-friend:disabled { cursor: default; }
+.tc-friend:not(:disabled):hover .av { box-shadow: 0 0 0 2px var(--line-2); }
 .tc-friend .av {
   width: 32px; height: 32px; border-radius: 50%; background: var(--chip); color: var(--chip-ink);
   display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 600;
@@ -652,3 +657,45 @@ body {
   font-size: 12px; letter-spacing: 0.34em; padding-left: 0.34em; color: var(--muted);
 }
 .splash-msg { margin: 10px 0 0; font-size: 13px; color: var(--ink-mid); }
+
+/* ---------- pixel draw (친구 기기로 보내는 그림) ---------- */
+.pd {
+  position: fixed; inset: 0; z-index: 70; display: grid; place-items: center; padding: 20px;
+  background: rgba(32, 30, 23, 0.45); backdrop-filter: blur(6px);
+}
+.pd-card {
+  background: #fff; border: 1px solid var(--line-2); border-radius: 24px;
+  padding: 20px 18px 18px; width: 100%; max-width: 420px;
+  display: flex; flex-direction: column; gap: 14px;
+  box-shadow: 0 40px 90px -30px rgba(0,0,0,.4);
+}
+.pd-head { display: flex; align-items: baseline; justify-content: space-between; }
+.pd-head .t { font-size: 16px; font-weight: 700; color: var(--ink); }
+.pd-head .n { font-family: 'Space Mono', monospace; font-size: 11px; color: var(--muted); }
+
+/* 실제 OLED와 같은 비율. 픽셀은 또렷하게(보간 끔) */
+.pd-canvas {
+  width: 100%; height: auto; display: block; border-radius: 10px;
+  background: #12140f; touch-action: none; cursor: crosshair;
+  image-rendering: pixelated; image-rendering: crisp-edges;
+}
+
+.pd-presets { display: flex; gap: 8px; flex-wrap: wrap; }
+.pd-chip {
+  padding: 6px 12px; border-radius: 999px; border: 1px solid var(--line-2);
+  background: var(--card); color: var(--ink); font-size: 12.5px; cursor: pointer;
+}
+.pd-chip:hover { background: #fff; }
+
+.pd-tools { display: flex; gap: 8px; flex-wrap: wrap; justify-content: space-between; }
+.pd-group { display: flex; gap: 6px; }
+.pd-tool {
+  min-width: 36px; padding: 7px 11px; border-radius: 10px; border: 1px solid var(--line-2);
+  background: #fff; color: var(--ink-mid); font-size: 12.5px; cursor: pointer;
+}
+.pd-tool.on { background: var(--ink); color: var(--bg); border-color: var(--ink); }
+.pd-tool:disabled { opacity: .4; cursor: default; }
+
+.pd-actions { display: flex; gap: 10px; }
+.pd-actions .gbtn { margin-top: 0; }
+.pd-actions .gbtn:disabled { opacity: .45; cursor: default; }

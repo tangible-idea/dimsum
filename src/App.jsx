@@ -1,9 +1,13 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { deviceAuth, deviceCode, deviceRegister, googleLogin, previewMode, supabase } from './lib/supabase';
 import { useRealtime } from './hooks/useRealtime';
+import { msgTopic, publish } from './lib/mqtt';
+import { MSG_W, MSG_H } from './lib/bitmap';
 import Gate from './components/Gate';
 import Ranking from './components/Ranking';
 import Arcade from './components/Arcade';
+import PixelDraw from './components/PixelDraw';
+import PixelView from './components/PixelView';
 import PixelDimsum, { Sprite } from './components/PixelDimsum';
 import { ACCESSORIES, ACC_RARITY, STAGES, rollAccessory, stageOf } from './lib/pixels';
 import { CONSUMABLES, CONSUMABLE_BY_ID, FOOD_HINTS, STARTER_FRIDGE, consumableSrc, evolutionFoodId } from './lib/consumables';
@@ -187,6 +191,11 @@ export default function App() {
   const [showArcade, setShowArcade] = useState(false); // 클리커 아케이드(콜렉션+게임)
   const [myRank, setMyRank] = useState(null);      // 이번 주 내 순위(등록 시)
 
+  // 픽셀 메시지: 보낼 상대 / 받은 그림
+  const [msgTarget, setMsgTarget] = useState(null); // { id, name } — 그리기 화면 대상
+  const [msgSending, setMsgSending] = useState(false);
+  const [inbox, setInbox] = useState(null);         // 방금 받은 그림 { n, w, h, enc, d }
+
   // 냉장고(소비 아이템) / 성장 단계(먹이 진화) / 배고픔
   const [fridge, setFridge] = useState({});        // { itemId: count }
   const [showFridge, setShowFridge] = useState(false);
@@ -341,7 +350,50 @@ export default function App() {
     tap();
     window.dispatchEvent(new Event('dimsum:device-tap'));
   }, [tap]);
-  useRealtime({ myId: auth.myId, friends: [], onSignal: () => {}, onDeviceSignal });
+
+  // 친구의 poke(브로드캐스트) 수신
+  const onFriendSignal = useCallback((f, type) => {
+    if (type === 'poke') toast(`${f.name}님이 콕 찔렀어요 👉`);
+  }, [toast]);
+
+  // 나에게만 온 픽셀 그림 / 하트 답장 수신
+  const onMessage = useCallback((m) => {
+    if (m?.e === 'ack') { toast(`${m.n || '친구'}님이 그림을 봤어요 ❤️`); return; }
+    if (m?.e !== 'msg' || !m.d) return;
+    setInbox(m);
+  }, [toast]);
+
+  useRealtime({
+    myId: auth.myId,
+    friends,
+    onSignal: onFriendSignal,
+    onDeviceSignal,
+    onMessage,
+  });
+
+  // ---- 픽셀 그림 전송: 상대 기기 토픽으로만 publish ------------------------
+  const sendPixelMessage = useCallback(({ enc, d }) => {
+    if (!msgTarget || !auth.myId) return;
+    setMsgSending(true);
+    try {
+      publish(msgTopic(msgTarget.id), {
+        e: 'msg',
+        n: auth.profile?.nickname || '친구',
+        f: auth.myId,                 // 기기가 하트 답장을 보낼 주소
+        w: MSG_W,
+        h: MSG_H,
+        enc,
+        d,
+      });
+      toast(`${msgTarget.name}님 기기로 보냈어요 ✉️`);
+      setMsgTarget(null);
+    } catch (e) {
+      console.warn('[msg]', e?.message || e);
+      toast('전송에 실패했어요. 잠시 후 다시 시도해주세요');
+    } finally {
+      setMsgSending(false);
+    }
+  }, [msgTarget, auth.myId, auth.profile, toast]);
 
   // ---- 부팅 / 인증 -------------------------------------------------------
   const fnError = useCallback(async (error, data, fallback) => {
@@ -601,18 +653,23 @@ export default function App() {
             </button>
           </div>
 
-          {/* 친구 — 슬림 스트립(나 + 친구, 점수순 상위 5) */}
+          {/* 친구 — 슬림 스트립(나 + 친구, 점수순 상위 5). 친구를 누르면 그림 보내기 */}
           <div className="tc-friends">
-            <span className="tc-friends-lbl">친구</span>
+            <span className="tc-friends-lbl">친구 · 눌러서 그림 보내기</span>
             <div className="tc-friends-row">
               {[{ id: 'me', name: '나', score: total, me: true }, ...friends]
                 .sort((a, b) => b.score - a.score)
                 .slice(0, 5)
                 .map((f) => (
-                  <div className="tc-friend" key={f.id}>
+                  <button
+                    className="tc-friend"
+                    key={f.id}
+                    disabled={f.me}
+                    onClick={() => !f.me && setMsgTarget(f)}
+                  >
                     <div className={'av' + (f.me ? ' me' : '')}>{f.me ? '나' : initial(f.name)}</div>
                     <div className={'sc' + (f.me ? ' me' : '')}>{fmt(f.score)}</div>
-                  </div>
+                  </button>
                 ))}
             </div>
           </div>
@@ -735,6 +792,19 @@ export default function App() {
           onClose={() => setShowArcade(false)}
         />
       )}
+
+      {/* 픽셀 그림 그리기 → 친구 기기로 전송 */}
+      {msgTarget && (
+        <PixelDraw
+          targetName={msgTarget.name}
+          sending={msgSending}
+          onSend={sendPixelMessage}
+          onClose={() => setMsgTarget(null)}
+        />
+      )}
+
+      {/* 친구가 나에게 보낸 그림 */}
+      {inbox && <PixelView msg={inbox} onClose={() => setInbox(null)} />}
 
       {/* 냉장고(소비 아이템) — 진화 재료 먹이기 */}
       {showFridge && (
