@@ -8,9 +8,15 @@ const WSS_URL = import.meta.env.VITE_MQTT_WSS_URL;
 const USERNAME = import.meta.env.VITE_MQTT_USERNAME;
 const PASSWORD = import.meta.env.VITE_MQTT_PASSWORD;
 
-for (const [k, v] of Object.entries({ VITE_MQTT_WSS_URL: WSS_URL, VITE_MQTT_USERNAME: USERNAME, VITE_MQTT_PASSWORD: PASSWORD })) {
-  if (!v) throw new Error(`${k}가 비어 있습니다. .env를 만들었나요? (.env.example 참고)`);
-  if (/^your-/.test(v)) throw new Error(`${k}가 아직 .env.example의 템플릿 값입니다.`);
+// 설정 누락은 접속 시점에 던진다. 모듈 로드 시점에 던지면 App 임포트가 통째로
+// 실패해서 React가 마운트되지 않고, index.html의 부트 스플래시만 영원히 남는다
+// — 원인이 안 보이는 가장 나쁜 실패 모양이다. 앱은 뜨고 MQTT만 죽게 한다.
+function assertConfig() {
+  const entries = { VITE_MQTT_WSS_URL: WSS_URL, VITE_MQTT_USERNAME: USERNAME, VITE_MQTT_PASSWORD: PASSWORD };
+  for (const [k, v] of Object.entries(entries)) {
+    if (!v) throw new Error(`${k}가 비어 있습니다. .env를 만들었나요? (.env.example 참고)`);
+    if (/^your-/.test(v)) throw new Error(`${k}가 아직 .env.example의 템플릿 값입니다.`);
+  }
 }
 
 // 유저별 피드 토픽: 본인이 publish, 친구들이 subscribe.
@@ -39,6 +45,7 @@ let client = null;
 // 앱 전역에서 공유하는 단일 MQTT 클라이언트.
 export function getMqtt() {
   if (client) return client;
+  assertConfig();
   client = mqtt.connect(WSS_URL, {
     username: USERNAME,
     password: PASSWORD,
