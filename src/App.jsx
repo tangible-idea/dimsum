@@ -6,6 +6,8 @@ import { MSG_W, MSG_H } from './lib/bitmap';
 import Gate from './components/Gate';
 import Ranking from './components/Ranking';
 import DinoGame from './components/DinoGame';
+import FeastGame from './components/FeastGame';
+import MergeGame from './components/CraftGame';
 import TabComms from './components/TabComms';
 import PixelDraw from './components/PixelDraw';
 import PixelView from './components/PixelView';
@@ -50,6 +52,13 @@ const growthPhrase = (pct) => GROWTH_PHRASES[Math.max(0, Math.min(9, Math.floor(
 const RECEIVED_MAX = 6;
 
 const TAB_TITLE = { comms: '통신', dimsum: '딤섬', game: '게임' };
+
+// 미니게임 목록. 새 게임은 여기 추가하고 아래 렌더에 분기만 더하면 된다.
+const GAMES = [
+  { id: 'dino', name: '딤섬 러너', desc: '장애물을 폴짝! 실물 클리커 버튼으로도 점프해요' },
+  { id: 'feast', name: '딤섬이 배 채우기', desc: '눌러서 한 입씩. 100을 넘기면 배탈이에요' },
+  { id: 'merge', name: '딤섬 합치기', desc: '같은 딤섬끼리 톡! 떨어뜨리고 합쳐서 왕만두를 만들어요' },
+];
 
 // 현재 딤섬이를 미니게임 플레이어 스프라이트(dataURL)로 래스터라이즈
 const dimsumSprite = (stageIdx, variant) => {
@@ -197,7 +206,7 @@ export default function App() {
   const [reward, setReward] = useState(null);    // { stage: 'box'|'open'|'reveal', acc, isNew }
   const [showCol, setShowCol] = useState(false);
   const [showRank, setShowRank] = useState(false); // 주간 랭킹 패널
-  const [playDino, setPlayDino] = useState(false); // 딤섬 러너
+  const [playGame, setPlayGame] = useState(null);  // 실행 중인 미니게임 id
   const [myRank, setMyRank] = useState(null);      // 이번 주 내 순위(등록 시)
 
   // 하단 3탭. 통신이 기본 — 기기가 있어야 성립하는 유일한 기능이라
@@ -712,15 +721,19 @@ export default function App() {
 
               <section className="tb-sec">
                 <h2 className="tb-h">미니게임</h2>
-                <button className="gm-card" onClick={() => setPlayDino(true)}>
-                  {/* 러너에 나가는 캐릭터가 곧 내 딤섬이라 스프라이트를 그대로 쓴다 */}
-                  <img className="gm-ic" src={dinoChar.img} alt="" />
-                  <span className="gm-body">
-                    <b>딤섬 러너</b>
-                    <i>장애물을 폴짝! 실물 클리커 버튼으로도 점프해요</i>
-                  </span>
-                  <IconChevron />
-                </button>
+                <div className="gm-list">
+                  {GAMES.map((g) => (
+                    <button key={g.id} className="gm-card" onClick={() => setPlayGame(g.id)}>
+                      {/* 어느 게임이든 나가는 캐릭터는 내 딤섬이라 스프라이트를 그대로 쓴다 */}
+                      <img className="gm-ic" src={dinoChar.img} alt="" />
+                      <span className="gm-body">
+                        <b>{g.name}</b>
+                        <i>{g.desc}</i>
+                      </span>
+                      <IconChevron />
+                    </button>
+                  ))}
+                </div>
               </section>
             </div>
           )}
@@ -839,12 +852,14 @@ export default function App() {
       )}
 
       {/* 클리커 아케이드 — 실물 클리커 콜렉션 + 미니게임 */}
-      {playDino && (
-        <DinoGame
-          myId={auth.myId}
-          character={dinoChar}
-          onExit={() => setPlayDino(false)}
-        />
+      {playGame === 'dino' && (
+        <DinoGame myId={auth.myId} character={dinoChar} onExit={() => setPlayGame(null)} />
+      )}
+      {playGame === 'feast' && (
+        <FeastGame myId={auth.myId} character={dinoChar} onExit={() => setPlayGame(null)} />
+      )}
+      {playGame === 'merge' && (
+        <MergeGame myId={auth.myId} character={dinoChar} onExit={() => setPlayGame(null)} />
       )}
 
       {/* 픽셀 그림 그리기 → 친구 기기로 전송 */}

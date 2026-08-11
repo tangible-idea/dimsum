@@ -791,6 +791,7 @@ body {
 .tc-primary:active { transform: translateY(.5px); }
 
 /* ---------- 게임 탭: 미니게임 카드 ---------- */
+.gm-list { display: flex; flex-direction: column; gap: 10px; }
 .gm-card {
   display: flex; align-items: center; gap: 14px; width: 100%; padding: 16px 14px;
   background: #fff; border: 1px solid var(--line-2); border-radius: 18px;
@@ -811,4 +812,108 @@ body {
 .cm-name i {
   display: block; margin-top: 2px; font-style: normal;
   font-size: 11.5px; font-weight: 400; color: var(--muted);
+}
+
+
+/* ---------- 배 채우기 (버튼 하나 게임) ---------- */
+.fg {
+  position: fixed; inset: 0; z-index: 75; background: var(--bg);
+  display: flex; flex-direction: column; align-items: center;
+  padding: calc(env(safe-area-inset-top) + 14px) 20px calc(env(safe-area-inset-bottom) + 20px);
+  touch-action: manipulation; user-select: none; cursor: pointer;
+}
+.fg-top {
+  width: 100%; max-width: 420px; flex: 0 0 auto;
+  display: flex; align-items: center; justify-content: space-between;
+}
+.fg-exit {
+  width: 36px; height: 36px; border-radius: 50%; cursor: pointer; flex: 0 0 auto;
+  display: flex; align-items: center; justify-content: center;
+  border: 1px solid var(--line-2); background: #fff; color: var(--ink-mid);
+}
+.fg-stats {
+  display: flex; gap: 12px; font-family: 'Space Mono', monospace;
+  font-size: 10.5px; letter-spacing: .08em; color: var(--muted);
+}
+.fg-stats b { color: var(--ink); font-size: 12.5px; margin-left: 2px; }
+.fg-stats .dim b { color: var(--ink-mid); }
+
+.fg-stage {
+  flex: 1 1 auto; width: 100%; max-width: 420px; min-height: 0;
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 18px;
+}
+.fg-num {
+  font-family: 'Space Mono', monospace; font-size: clamp(52px, 17vw, 76px);
+  font-weight: 700; line-height: 1; color: var(--ink); font-variant-numeric: tabular-nums;
+}
+.fg-num i { font-style: normal; font-size: 20px; color: var(--muted); margin-left: 4px; }
+.fg-num.bust { color: #C0503C; }
+
+.fg-bar {
+  width: 100%; max-width: 300px; height: 8px; border-radius: 8px;
+  background: var(--track); overflow: hidden;
+}
+.fg-bar-fill { height: 100%; background: var(--ink-2); transition: width .18s ease; }
+
+.fg-char { width: 110px; height: 110px; display: flex; align-items: center; justify-content: center; }
+.fg-char img {
+  width: 100%; height: 100%; object-fit: contain; image-rendering: pixelated;
+  transition: transform .18s cubic-bezier(.3,.8,.4,1.3);
+}
+.fg-char.munch img { animation: fg-munch .32s ease-in-out; }
+@keyframes fg-munch {
+  0%   { transform: scale(1); }
+  40%  { transform: scale(1.12, .9); }
+  100% { transform: scale(1); }
+}
+.fg-char.bust img { transform: rotate(8deg) scale(1.05); filter: saturate(.6); }
+
+/* 남은 시간 링 — conic-gradient로 그린다 */
+.fg-ring {
+  --left: 1;
+  width: 74px; height: 74px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center; text-align: center;
+  background: conic-gradient(var(--ink-2) calc(var(--left) * 360deg), var(--track) 0);
+  position: relative;
+}
+.fg-ring::before {
+  content: ''; position: absolute; inset: 6px; border-radius: 50%; background: var(--bg);
+}
+.fg-ring span {
+  position: relative; font-size: 9.5px; line-height: 1.25; color: var(--muted);
+  letter-spacing: .02em; padding: 0 8px;
+}
+
+.fg-hint { margin: 0; font-size: 13px; color: var(--ink-mid); text-align: center; }
+.fg-result { margin: 0; font-size: 17px; font-weight: 700; color: var(--ink); }
+.fg-result.bust { color: #C0503C; }
+
+.fg-over {
+  position: fixed; left: 50%; bottom: calc(env(safe-area-inset-bottom) + 24px);
+  transform: translateX(-50%); width: calc(100% - 40px); max-width: 380px;
+  background: #fff; border: 1px solid var(--line-2); border-radius: 20px;
+  padding: 18px; display: flex; flex-direction: column; gap: 4px; text-align: center;
+  box-shadow: 0 30px 70px -28px rgba(0,0,0,.35); cursor: default;
+}
+.fg-over b { font-size: 17px; color: var(--ink); }
+.fg-over span { font-size: 13px; color: var(--ink-mid); }
+.fg-over-btns { display: flex; gap: 10px; margin-top: 12px; }
+.fg-over-btns .gbtn { margin-top: 0; }
+
+.mg {
+  position: fixed; inset: 0; z-index: 75; overflow: hidden;
+  padding-top: env(safe-area-inset-top); padding-bottom: env(safe-area-inset-bottom);
+  background: var(--bg);
+}
+.mg-canvas { display: block; width: 100%; height: 100%; touch-action: none; }
+.mg-exit {
+  position: absolute; left: 14px; top: calc(env(safe-area-inset-top) + 14px);
+  width: 36px; height: 36px; border-radius: 50%; cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  border: 1px solid var(--line-2); background: rgba(255,255,255,.92); color: var(--ink-mid);
+}
+.mg-name {
+  position: absolute; left: 50%; top: calc(env(safe-area-inset-top) + 24px); transform: translateX(-50%);
+  font-family: 'Space Mono', monospace; font-size: 9px; font-weight: 700;
+  letter-spacing: .18em; color: var(--muted); pointer-events: none;
 }
