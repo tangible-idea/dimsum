@@ -10,6 +10,7 @@ import TabComms from './components/TabComms';
 import PixelDraw from './components/PixelDraw';
 import PixelView from './components/PixelView';
 import PixelDimsum, { Sprite } from './components/PixelDimsum';
+import { IconDumpling, IconGamepad, IconMail } from './components/icons';
 import { ACCESSORIES, ACC_RARITY, PALETTE, STAGES, rollAccessory, stageOf } from './lib/pixels';
 import { CONSUMABLES, STARTER_FRIDGE, consumableSrc } from './lib/consumables';
 
@@ -164,37 +165,6 @@ const IconBowl = () => (
     <path d="M9 8.4c0-1.3 1.5-1.6 1.5-3" />
     <path d="M13.2 8.4c0-1.3 1.5-1.6 1.5-3" />
   </svg>
-);
-
-// 하단 탭 아이콘 — 나머지 아이콘과 같은 라인 스타일(stroke 1.6, viewBox 24)
-const TabIcon = ({ children }) => (
-  <svg width="23" height="23" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
-    {children}
-  </svg>
-);
-const IconMail = () => (
-  <TabIcon>
-    <rect x="2.5" y="5" width="19" height="14" rx="2.6" />
-    <path d="M3.4 7.6l7.3 5a2.3 2.3 0 0 0 2.6 0l7.3-5" />
-  </TabIcon>
-);
-// 찐만두: 둥근 몸통 + 주름 + 위 매듭. 매듭이 없으면 우산처럼 보인다.
-const IconDumpling = () => (
-  <TabIcon>
-    <path d="M4.3 18.4a7.7 7.7 0 0 1 15.4 0Z" />
-    <path d="M2.6 18.4h18.8" />
-    <path d="M9.5 18.4c0-2.7.4-4.9 1.1-6.4" />
-    <path d="M14.5 18.4c0-2.7-.4-4.9-1.1-6.4" />
-    <circle cx="12" cy="10.4" r="1.35" />
-  </TabIcon>
-);
-const IconGamepad = () => (
-  <TabIcon>
-    <rect x="2.5" y="7.5" width="19" height="10" rx="4.6" />
-    <path d="M7 10.6v2.8" /><path d="M5.6 12h2.8" />
-    <circle cx="16" cy="11.2" r=".95" fill="currentColor" stroke="none" />
-    <circle cx="18.3" cy="13.6" r=".95" fill="currentColor" stroke="none" />
-  </TabIcon>
 );
 
 // 하단 탭 — 라벨을 붙여서 아이콘만 보고 추측하지 않아도 되게 한다

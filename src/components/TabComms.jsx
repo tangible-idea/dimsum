@@ -1,4 +1,5 @@
 import { PixelThumb } from './PixelView';
+import { IconPencil } from './icons';
 
 // 통신 탭 — 이 앱의 첫 화면.
 // 기기가 있어야만 성립하는 유일한 기능이라 앱을 열자마자 보이게 둔다.
@@ -39,7 +40,7 @@ export default function TabComms({ friends, received, me, onPick, onOpen }) {
             <button key={f.id} className="cm-row" onClick={() => onPick(f)}>
               <span className="cm-av">{initial(f.name)}</span>
               <span className="cm-name">{f.name}</span>
-              <span className="cm-go">그림 보내기</span>
+              <span className="cm-go" aria-label="그림 보내기" title="그림 보내기"><IconPencil size={20} /></span>
             </button>
           ))}
 
@@ -54,7 +55,7 @@ export default function TabComms({ friends, received, me, onPick, onOpen }) {
               <button className="cm-row self" onClick={() => onPick(me)}>
                 <span className="cm-av self">나</span>
                 <span className="cm-name">내 기기<i>테스트로 보내보기</i></span>
-                <span className="cm-go">그림 보내기</span>
+                <span className="cm-go" aria-label="그림 보내기" title="그림 보내기"><IconPencil size={20} /></span>
               </button>
             </>
           )}

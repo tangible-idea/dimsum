@@ -682,21 +682,34 @@ body {
 
 .pd-presets { display: flex; gap: 8px; flex-wrap: wrap; }
 .pd-chip {
-  padding: 6px 12px; border-radius: 999px; border: 1px solid var(--line-2);
-  background: var(--card); color: var(--ink); font-size: 12.5px; cursor: pointer;
+  width: 40px; height: 40px; display: flex; align-items: center; justify-content: center;
+  border-radius: 999px; border: 1px solid var(--line-2);
+  background: var(--card); color: var(--ink-mid); cursor: pointer;
+  transition: color .15s, background .15s;
 }
+.pd-chip:hover { background: #fff; color: var(--ink); }
 .pd-chip:hover { background: #fff; }
 
-.pd-tools { display: flex; gap: 8px; flex-wrap: wrap; justify-content: space-between; }
-.pd-group { display: flex; gap: 6px; }
+.pd-tools { display: flex; gap: 8px; flex-wrap: nowrap; justify-content: space-between; }
+.pd-group { display: flex; gap: 5px; flex: 0 0 auto; }
 .pd-tool {
-  min-width: 36px; padding: 7px 11px; border-radius: 10px; border: 1px solid var(--line-2);
-  background: #fff; color: var(--ink-mid); font-size: 12.5px; cursor: pointer;
+  width: 38px; height: 38px; display: flex; align-items: center; justify-content: center;
+  border-radius: 11px; border: 1px solid var(--line-2);
+  background: #fff; color: var(--ink-mid); cursor: pointer;
+  transition: color .15s, background .15s, border-color .15s;
 }
+.pd-tool:not(:disabled):hover { color: var(--ink); background: var(--card); }
 .pd-tool.on { background: var(--ink); color: var(--bg); border-color: var(--ink); }
 .pd-tool:disabled { opacity: .4; cursor: default; }
 
+/* 그림이 비었을 때만 뜨는 안내. 버튼 안에 넣으면 상태 표시와 라벨이 섞인다. */
+.pd-hint {
+  margin: -4px 0 0; text-align: center; font-size: 12.5px; color: var(--muted);
+}
+
 .pd-actions { display: flex; gap: 10px; }
+/* 닫기는 아이콘만 — 정사각으로 줄여 주 행동(보내기)이 넓이를 갖게 한다 */
+.pd-close { width: 46px; flex: 0 0 auto; padding: 0; }
 .pd-actions .gbtn { margin-top: 0; }
 .pd-actions .gbtn:disabled { opacity: .45; cursor: default; }
 
@@ -764,7 +777,8 @@ body {
   display: flex; align-items: center; justify-content: center; font-size: 14px; font-weight: 600;
 }
 .cm-name { flex: 1 1 auto; font-size: 15px; font-weight: 600; color: var(--ink); }
-.cm-go { flex: 0 0 auto; font-size: 12.5px; color: var(--muted); }
+.cm-go { flex: 0 0 auto; display: flex; color: var(--muted); transition: color .15s; }
+.cm-row:hover .cm-go { color: var(--ink); }
 
 /* ---------- 딤섬 탭: 주 행동 버튼 ---------- */
 .tc-primary {

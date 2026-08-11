@@ -1,9 +1,20 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { MSG_W, MSG_H, PRESETS, encodeBitmap, plotLine, stamp } from '../lib/bitmap';
+import {
+  IconBang, IconClose, IconDot, IconEraser, IconHeart,
+  IconPencil, IconSend, IconSmile, IconTrash, IconUndo,
+} from './icons';
 
 // 화면에 그릴 때 픽셀 하나의 크기(내부 캔버스 해상도용)
 const PX = 8;
 const UNDO_MAX = 15;
+
+// 프리셋은 내용 자체가 아이콘이라 그림만 보여도 읽힌다.
+// lib/bitmap.js는 JSX를 모르므로 매핑은 여기서 한다.
+const PRESET_ICON = { heart: IconHeart, smile: IconSmile, bang: IconBang };
+
+// 브러시 굵기를 점 반지름으로 — 숫자보다 결과가 바로 보인다.
+const DOT_R = { 1: 1.7, 2: 3.1, 3: 4.6 };
 
 // 친구 기기(64×32 OLED)에 보낼 픽셀 그림 에디터.
 // 실제 기기와 같은 해상도로 그리므로 여기 보이는 것이 그대로 상대 화면에 뜬다.
@@ -126,32 +137,71 @@ export default function PixelDraw({ targetName, sending, onSend, onClose }) {
           onPointerCancel={onUp}
         />
 
+        {empty && <p className="pd-hint">그림을 그리면 보낼 수 있어요</p>}
+
         <div className="pd-presets">
-          {PRESETS.map((p) => (
-            <button key={p.id} className="pd-chip" onClick={() => applyPreset(p)}>{p.label}</button>
-          ))}
+          {PRESETS.map((p) => {
+            const PIcon = PRESET_ICON[p.id];
+            return (
+              <button
+                key={p.id} className="pd-chip" onClick={() => applyPreset(p)}
+                aria-label={p.label} title={p.label}
+              >
+                {PIcon ? <PIcon size={20} /> : p.label}
+              </button>
+            );
+          })}
         </div>
 
         <div className="pd-tools">
           <div className="pd-group">
-            <button className={'pd-tool' + (tool === 'pen' ? ' on' : '')} onClick={() => setTool('pen')}>펜</button>
-            <button className={'pd-tool' + (tool === 'eraser' ? ' on' : '')} onClick={() => setTool('eraser')}>지우개</button>
+            <button
+              className={'pd-tool' + (tool === 'pen' ? ' on' : '')}
+              onClick={() => setTool('pen')} aria-label="펜" title="펜"
+              aria-pressed={tool === 'pen'}
+            >
+              <IconPencil size={20} />
+            </button>
+            <button
+              className={'pd-tool' + (tool === 'eraser' ? ' on' : '')}
+              onClick={() => setTool('eraser')} aria-label="지우개" title="지우개"
+              aria-pressed={tool === 'eraser'}
+            >
+              <IconEraser size={20} />
+            </button>
           </div>
           <div className="pd-group">
             {[1, 2, 3].map((s) => (
-              <button key={s} className={'pd-tool' + (size === s ? ' on' : '')} onClick={() => setSize(s)}>{s}</button>
+              <button
+                key={s} className={'pd-tool' + (size === s ? ' on' : '')}
+                onClick={() => setSize(s)} aria-label={`굵기 ${s}`} title={`굵기 ${s}`}
+                aria-pressed={size === s}
+              >
+                <IconDot size={20} r={DOT_R[s]} />
+              </button>
             ))}
           </div>
           <div className="pd-group">
-            <button className="pd-tool" onClick={undo} disabled={!undoRef.current.length}>되돌리기</button>
-            <button className="pd-tool" onClick={clear}>전체 지우기</button>
+            <button
+              className="pd-tool" onClick={undo} disabled={!undoRef.current.length}
+              aria-label="되돌리기" title="되돌리기"
+            >
+              <IconUndo size={20} />
+            </button>
+            <button className="pd-tool" onClick={clear} aria-label="전체 지우기" title="전체 지우기">
+              <IconTrash size={20} />
+            </button>
           </div>
         </div>
 
         <div className="pd-actions">
-          <button className="gbtn ghost" onClick={onClose}>닫기</button>
+          <button className="gbtn ghost pd-close" onClick={onClose} aria-label="닫기" title="닫기">
+            <IconClose size={20} />
+          </button>
+          {/* 주 행동은 아이콘만 두지 않는다. 전송 중·불가 상태를 말로 알려야 한다. */}
           <button className="gbtn" onClick={send} disabled={empty || sending}>
-            {sending ? '보내는 중…' : empty ? '그림을 그려주세요' : '기기로 보내기'}
+            <IconSend size={19} />
+            {sending ? '보내는 중…' : '보내기'}
           </button>
         </div>
       </div>
