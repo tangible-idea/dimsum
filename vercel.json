@@ -1,6 +1,8 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "rewrites": [
-    { "source": "/(.*)", "destination": "/index.html" }
+    { "source": "/firmware/(.*)", "destination": "/firmware/$1" },
+    { "source": "/wiring-assembly.html", "destination": "/wiring-assembly.html" },
+    { "source": "/((?!firmware|wiring-assembly|assets).*)", "destination": "/index.html" }
   ]
 }
