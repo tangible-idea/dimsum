@@ -340,6 +340,36 @@
   .note dd { margin: 0; font-size: 13.5px; color: var(--ink-2); max-width: 70ch; }
   .note dd strong { color: var(--ink); font-weight: 600; }
 
+  /* ---------- 펌웨어 설치 ---------- */
+  .flash {
+    background: var(--surface); border: 1px solid var(--rule); border-radius: 3px;
+    padding: 22px 24px; box-shadow: var(--shadow);
+    display: flex; flex-direction: column; gap: 14px;
+  }
+  .flash-row { display: flex; flex-wrap: wrap; align-items: center; gap: 16px; }
+  .flash-btn {
+    appearance: none; cursor: pointer;
+    font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+    font-size: 14px; font-weight: 600; letter-spacing: .04em;
+    color: var(--surface); background: var(--accent);
+    border: none; border-radius: 3px;
+    padding: 13px 22px;
+    transition: background .15s, transform .05s;
+  }
+  .flash-btn:hover { background: var(--ink); }
+  .flash-btn:active { transform: translateY(1px); }
+  .flash-btn:disabled { opacity: .55; cursor: not-allowed; }
+  .flash-meta {
+    font-size: 12.5px; color: var(--ink-3); line-height: 1.6;
+    display: flex; flex-direction: column; gap: 2px;
+  }
+  .flash-meta strong { color: var(--ink-2); font-weight: 600; }
+  .flash-unsupported {
+    font-size: 13px; color: var(--warn); font-weight: 600;
+    padding: 10px 14px; border: 1px solid var(--warn); border-radius: 3px;
+    background: var(--surface);
+  }
+
   footer {
     font-size: 12.5px; color: var(--ink-3);
     border-top: 1px solid var(--rule); padding-top: 16px;
@@ -362,6 +392,9 @@
     section { break-inside: avoid; }
   }
 </style>
+
+<!-- ESP Web Tools: 브라우저(Web Serial API)에서 USB로 펌웨어 플래시 -->
+<script type="module" src="https://unpkg.com/esp-web-tools@10/dist/web/install-button.js?module"></script>
 
 <div class="sheet">
 
@@ -819,9 +852,53 @@
     </dl>
   </section>
 
+  <!-- ============ 펌웨어 설치 ============ -->
+  <section>
+    <div class="sec-head">
+      <h2>펌웨어 설치</h2>
+      <span>USB 한 번에 — 크롬·엣지 브라우저에서</span>
+    </div>
+
+    <div class="flash">
+      <p style="margin:0;font-size:14px;color:var(--ink-2);max-width:72ch;line-height:1.6">
+        납땜이 끝났으면 보드의 <strong>USB-C</strong>에 케이블을 꽂고 아래 버튼을 누른다.
+        브라우저가 시리얼 포트를 인식해 <strong>bootloader · partition table · firmware</strong> 세 개를
+        순서대로 플래시한다. 별도 프로그램 설치 불필요.
+      </p>
+
+      <div class="flash-row">
+        <esp-web-install-button manifest="firmware/manifest.json" id="ewt">
+          <button slot="activate" class="flash-btn">USB로 펌웨어 설치</button>
+        </esp-web-install-button>
+        <div class="flash-unsupported" id="ewt-fallback" hidden>
+          이 브라우저는 Web Serial을 지원하지 않습니다. <strong>Chrome</strong> 또는 <strong>Edge</strong> 데스크톱에서 열어주세요.
+        </div>
+
+        <div class="flash-meta">
+          <span><strong>칩:</strong> ESP32-C3 · <strong>보드:</strong> SuperMini</span>
+          <span><strong>구성:</strong> bootloader @0x0 · partitions @0x8000 · firmware @0x10000</span>
+          <span><strong>요구:</strong> Chrome/Edge 89+ · USB-C 데이터 케이블</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
   <footer>
     <span>핀 번호는 <code>platformio.ini</code>의 build_flags에서 주입된다 — <code>DISPLAY_SDA_PIN=8</code> / <code>DISPLAY_SCL_PIN=9</code> / <code>BUZZER_PIN=2</code> / <code>STATUS_LED_GREEN_PIN=6</code> / <code>STATUS_LED_RED_PIN=7</code>. <code>SWITCH_PIN=3</code>은 <code>src/main.cpp</code>에 직접 정의되어 있다.</span>
     <span>패널 크기는 <code>-DPANEL_W=64 -DPANEL_H=32</code> (0.49" SSD1306) 기준이다.</span>
   </footer>
 
 </div>
+
+<script>
+  // Web Serial 미지원 시 한국어 폴백 메시지 노출
+  (function () {
+    var ok = 'serial' in navigator && window.isSecureContext;
+    if (!ok) {
+      var ewt = document.getElementById('ewt');
+      var fb = document.getElementById('ewt-fallback');
+      if (ewt) ewt.hidden = true;
+      if (fb) fb.hidden = false;
+    }
+  })();
+</script>
