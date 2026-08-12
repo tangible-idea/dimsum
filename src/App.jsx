@@ -57,7 +57,7 @@ const TAB_TITLE = { comms: '통신', dimsum: '딤섬', game: '게임' };
 const GAMES = [
   { id: 'dino', name: '딤섬 러너', desc: '장애물을 폴짝! 실물 클리커 버튼으로도 점프해요' },
   { id: 'feast', name: '딤섬이 배 채우기', desc: '눌러서 한 입씩. 100을 넘기면 배탈이에요' },
-  { id: 'merge', name: '딤섬 합치기', desc: '같은 딤섬끼리 톡! 떨어뜨리고 합쳐서 왕만두를 만들어요' },
+  { id: 'merge', name: '딤섬 합치기', desc: '9단계 합체! 같은 딤섬을 모아 황금 왕만두를 만들어요' },
 ];
 
 // 현재 딤섬이를 미니게임 플레이어 스프라이트(dataURL)로 래스터라이즈

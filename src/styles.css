@@ -917,3 +917,28 @@ body {
   font-family: 'Space Mono', monospace; font-size: 9px; font-weight: 700;
   letter-spacing: .18em; color: var(--muted); pointer-events: none;
 }
+.mg-exit { z-index: 7; }
+.mg-rotate {
+  position: absolute; inset: 0; z-index: 6;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  padding: 28px; text-align: center; background: var(--bg);
+}
+.mg-phone {
+  position: relative; width: 42px; height: 68px; margin-bottom: 22px;
+  border: 2px solid var(--ink); border-radius: 9px;
+  animation: mg-turn 1.8s ease-in-out infinite;
+}
+.mg-phone::before {
+  content: ''; position: absolute; left: 50%; top: 5px; transform: translateX(-50%);
+  width: 12px; height: 2px; border-radius: 2px; background: var(--muted);
+}
+.mg-phone span {
+  position: absolute; left: 50%; bottom: 5px; transform: translateX(-50%);
+  width: 4px; height: 4px; border-radius: 50%; background: var(--ink-mid);
+}
+.mg-rotate b { font-size: 20px; color: var(--ink); }
+.mg-rotate > span { margin-top: 8px; font-size: 13px; color: var(--ink-mid); }
+@keyframes mg-turn {
+  0%, 20% { transform: rotate(90deg); }
+  65%, 100% { transform: rotate(0deg); }
+}

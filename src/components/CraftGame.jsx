@@ -1,13 +1,16 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { IconClose } from './icons';
 
 const PIECES = [
-  { name: '새우볼', r: 18, fill: '#F3C6A8', edge: '#C98469', score: 10 },
-  { name: '하가우', r: 24, fill: '#F6DFC0', edge: '#C99B6C', score: 25 },
-  { name: '교자', r: 31, fill: '#D9D8A7', edge: '#969866', score: 55 },
-  { name: '샤오마이', r: 39, fill: '#EBC66D', edge: '#B98935', score: 120 },
-  { name: '차슈바오', r: 48, fill: '#F4E5C4', edge: '#C5A77A', score: 260 },
-  { name: '왕만두', r: 60, fill: '#FFF1C9', edge: '#D5A64F', score: 600 },
+  { name: '새우볼', r: 15, fill: '#F3C6A8', edge: '#C98469', score: 10 },
+  { name: '하가우', r: 19, fill: '#F6DFC0', edge: '#C99B6C', score: 25 },
+  { name: '교자', r: 24, fill: '#D9D8A7', edge: '#969866', score: 60 },
+  { name: '샤오마이', r: 30, fill: '#EBC66D', edge: '#B98935', score: 140 },
+  { name: '샤오롱바오', r: 37, fill: '#E8D3AC', edge: '#B59468', score: 320 },
+  { name: '차슈바오', r: 45, fill: '#F1BEA0', edge: '#B9785F', score: 700 },
+  { name: '연잎밥', r: 54, fill: '#A9B779', edge: '#697748', score: 1500 },
+  { name: '복주머니', r: 64, fill: '#E39B67', edge: '#A75E3D', score: 3200 },
+  { name: '황금 왕만두', r: 75, fill: '#F7D768', edge: '#B98B24', score: 7000 },
 ];
 
 const nextPiece = () => {
@@ -17,6 +20,7 @@ const nextPiece = () => {
 
 export default function MergeGame({ myId, character, onExit }) {
   const canvasRef = useRef(null);
+  const [landscape, setLandscape] = useState(false);
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -49,11 +53,15 @@ export default function MergeGame({ myId, character, onExit }) {
       drops: 0,
       speed: 1,
       sweepPhase: 0,
+      highest: 2,
+      paused: false,
     };
 
     const resize = () => {
-      const oldWidth = width || canvas.clientWidth;
-      const oldHeight = height || canvas.clientHeight;
+      const oldLeft = left;
+      const oldRight = right;
+      const oldTop = top;
+      const oldFloor = floor;
       width = canvas.clientWidth;
       height = canvas.clientHeight;
       canvas.width = Math.round(width * dpr);
@@ -62,14 +70,24 @@ export default function MergeGame({ myId, character, onExit }) {
       ctx.imageSmoothingEnabled = false;
       left = Math.max(14, (width - 430) / 2);
       right = Math.min(width - 14, (width + 430) / 2);
-      if (!game.dropX) game.dropX = (left + right) / 2;
       top = Math.max(96, height * 0.15);
       floor = height - 42;
-      if (oldWidth && oldHeight && game.balls.length) {
-        const sx = width / oldWidth;
-        const sy = height / oldHeight;
-        game.balls.forEach((ball) => { ball.x *= sx; ball.y *= sy; });
+      if (oldRight > oldLeft && oldFloor > oldTop && game.balls.length) {
+        const oldSpan = oldRight - oldLeft;
+        const newSpan = right - left;
+        const oldPlayHeight = oldFloor - oldTop;
+        const newPlayHeight = floor - top;
+        game.balls.forEach((ball) => {
+          ball.x = left + ((ball.x - oldLeft) / oldSpan) * newSpan;
+          ball.y = floor - ((oldFloor - ball.y) / oldPlayHeight) * newPlayHeight;
+        });
+        game.dangerSince = 0;
       }
+      game.dropX = (left + right) / 2 + Math.sin(game.sweepPhase) * Math.max(24, (right - left) / 2 - 68);
+      const rotated = width > height && window.matchMedia('(pointer: coarse)').matches;
+      game.paused = rotated;
+      if (rotated) game.dangerSince = 0;
+      setLandscape(rotated);
     };
 
     const seedBoard = () => {
@@ -106,6 +124,7 @@ export default function MergeGame({ myId, character, onExit }) {
       game.drops = 0;
       game.speed = 1;
       game.sweepPhase = 0;
+      game.highest = 2;
     };
 
     const drop = (now) => {
@@ -120,6 +139,7 @@ export default function MergeGame({ myId, character, onExit }) {
     };
 
     const input = () => {
+      if (game.paused) return;
       const now = performance.now();
       if (game.state === 'ready') { game.state = 'run'; drop(now); return; }
       if (game.state === 'over') { reset(); game.state = 'run'; drop(now); return; }
@@ -157,6 +177,7 @@ export default function MergeGame({ myId, character, onExit }) {
             born: now,
           });
           game.combo += 1;
+          game.highest = Math.max(game.highest, type);
           game.score += PIECES[type].score * Math.min(3, game.combo);
           game.flash = now + 260;
           return true;
@@ -166,7 +187,7 @@ export default function MergeGame({ myId, character, onExit }) {
     };
 
     const physics = (dt, now) => {
-      if (game.state === 'over') return;
+      if (game.state === 'over' || game.paused) return;
       const steps = 3;
       const step = dt / steps;
       for (let pass = 0; pass < steps; pass += 1) {
@@ -245,11 +266,21 @@ export default function MergeGame({ myId, character, onExit }) {
       ctx.fill(); ctx.stroke();
       ctx.strokeStyle = piece.edge;
       ctx.lineWidth = Math.max(1, piece.r * 0.045);
-      for (let fold = -2; fold <= 2; fold += 1) {
+      const folds = Math.min(4, 2 + Math.floor(type / 2));
+      for (let fold = -folds; fold <= folds; fold += 1) {
         ctx.beginPath();
-        ctx.moveTo(fold * piece.r * 0.16, -piece.r * 0.79);
-        ctx.lineTo(fold * piece.r * 0.1, -piece.r * 0.38);
+        ctx.moveTo(fold * piece.r * 0.11, -piece.r * 0.79);
+        ctx.lineTo(fold * piece.r * 0.07, -piece.r * 0.38);
         ctx.stroke();
+      }
+      if (type >= 3) {
+        ctx.fillStyle = piece.edge;
+        ctx.beginPath(); ctx.arc(0, -piece.r * 0.72, Math.max(2, piece.r * 0.08), 0, Math.PI * 2); ctx.fill();
+      }
+      if (type >= 6) {
+        ctx.strokeStyle = 'rgba(255,255,255,.62)';
+        ctx.lineWidth = Math.max(2, piece.r * 0.055);
+        ctx.beginPath(); ctx.moveTo(-piece.r * 0.48, piece.r * 0.15); ctx.lineTo(piece.r * 0.48, -piece.r * 0.08); ctx.stroke();
       }
       ctx.restore();
     };
@@ -267,6 +298,10 @@ export default function MergeGame({ myId, character, onExit }) {
       ctx.textAlign = 'right';
       ctx.fillText('NEXT · ' + PIECES[game.next].name, right, 48);
       dumpling(right - 16, 73, game.next, 0.75);
+      ctx.textAlign = 'center';
+      ctx.fillStyle = '#6A665A';
+      ctx.font = '700 9px "Space Mono", monospace';
+      ctx.fillText(`${game.highest + 1}/${PIECES.length} · ${PIECES[game.highest].name}`, width / 2, 72);
       if (mascot.complete && mascot.naturalWidth) ctx.drawImage(mascot, left + 8, top - 22, 38, 38);
 
       const dangerLine = top + 42;
@@ -318,7 +353,7 @@ export default function MergeGame({ myId, character, onExit }) {
         ctx.fillText(game.state === 'ready' ? '딤섬 합치기' : '찜기가 가득 찼어요', width / 2, height * 0.43);
         ctx.fillStyle = '#6A665A';
         ctx.font = '400 13px "Apple SD Gothic Neo", sans-serif';
-        ctx.fillText(game.state === 'ready' ? '같은 딤섬을 만나게 떨어뜨리세요' : `${game.score}점 · 눌러서 다시 시작`, width / 2, height * 0.43 + 27);
+        ctx.fillText(game.state === 'ready' ? '9단계를 합쳐 황금 왕만두를 만드세요' : `${game.score}점 · 눌러서 다시 시작`, width / 2, height * 0.43 + 27);
         ctx.fillStyle = '#201E17';
         ctx.font = '700 11px "Space Mono", monospace';
         ctx.fillText(game.state === 'ready' ? 'TAP TO DROP' : 'TAP TO RETRY', width / 2, height * 0.43 + 58);
@@ -329,8 +364,10 @@ export default function MergeGame({ myId, character, onExit }) {
       const dt = Math.min(0.032, (now - last) / 1000);
       last = now;
       const travel = Math.max(24, (right - left) / 2 - 68);
-      game.sweepPhase += dt * 2.15 * game.speed;
-      game.dropX = (left + right) / 2 + Math.sin(game.sweepPhase) * travel;
+      if (!game.paused) {
+        game.sweepPhase += dt * 2.15 * game.speed;
+        game.dropX = (left + right) / 2 + Math.sin(game.sweepPhase) * travel;
+      }
       physics(dt, now);
       draw(now);
       raf = requestAnimationFrame(frame);
@@ -362,6 +399,13 @@ export default function MergeGame({ myId, character, onExit }) {
       <canvas ref={canvasRef} className="mg-canvas" aria-label="딤섬 합치기 게임" />
       <button className="mg-exit" onClick={onExit} aria-label="게임 나가기" title="나가기"><IconClose size={18} /></button>
       <div className="mg-name">DIMSUM MERGE</div>
+      {landscape && (
+        <div className="mg-rotate" role="status" aria-live="polite">
+          <div className="mg-phone"><span /></div>
+          <b>세로로 돌려주세요</b>
+          <span>돌아올 때까지 게임은 잠시 멈춰 있어요</span>
+        </div>
+      )}
     </div>
   );
 }
