@@ -18,7 +18,7 @@ const PLANETS = [
   { name: '지구', body: '#5B8FB9', detail: '#7FA76B', goal: 7, speed: 1.55, chilis: 2, telegraph: 1150 },
   { name: '화성', body: '#C96F4A', detail: '#9E4E31', goal: 8, speed: 1.65, chilis: 2, telegraph: 1100 },
   { name: '목성', body: '#D9A876', detail: '#B07E4E', goal: 9, speed: 1.75, chilis: 3, telegraph: 1050 },
-  { name: '토성', body: '#E0C48C', detail: '#B79А5E'.replace('А', 'A'), goal: 10, speed: 1.85, chilis: 3, telegraph: 1000 },
+  { name: '토성', body: '#E0C48C', detail: '#B79A5E', goal: 10, speed: 1.85, chilis: 3, telegraph: 1000 },
   { name: '천왕성', body: '#8FC7CE', detail: '#5FA0A8', goal: 11, speed: 1.95, chilis: 4, telegraph: 975 },
   { name: '해왕성', body: '#4E6ED1', detail: '#3A52A3', goal: 12, speed: 2.1, chilis: 4, telegraph: 950 },
 ];

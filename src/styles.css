@@ -942,3 +942,10 @@ body {
   0%, 20% { transform: rotate(90deg); }
   65%, 100% { transform: rotate(0deg); }
 }
+
+/* 딤섬 오빗 — 우주 테마 오버라이드 */
+.og { background: #0A0D1E; }
+.og .mg-exit {
+  border-color: rgba(233,236,255,.22); background: rgba(233,236,255,.08); color: rgba(233,236,255,.75);
+}
+.og .mg-name { color: rgba(233,236,255,.4); }
