@@ -8,6 +8,7 @@ import Ranking from './components/Ranking';
 import DinoGame from './components/DinoGame';
 import FeastGame from './components/FeastGame';
 import MergeGame from './components/CraftGame';
+import OrbitGame from './components/OrbitGame';
 import TabComms from './components/TabComms';
 import PixelDraw from './components/PixelDraw';
 import PixelView from './components/PixelView';
@@ -58,6 +59,7 @@ const GAMES = [
   { id: 'dino', name: '딤섬 러너', desc: '장애물을 폴짝! 실물 클리커 버튼으로도 점프해요' },
   { id: 'feast', name: '딤섬이 배 채우기', desc: '눌러서 한 입씩. 100을 넘기면 배탈이에요' },
   { id: 'merge', name: '딤섬 합치기', desc: '9단계 합체! 같은 딤섬을 모아 황금 왕만두를 만들어요' },
+  { id: 'orbit', name: '딤섬 오빗', desc: '누르면 방향 반전! 접시 위 딤섬은 줍고 고추는 피해요' },
 ];
 
 // 현재 딤섬이를 미니게임 플레이어 스프라이트(dataURL)로 래스터라이즈
@@ -860,6 +862,9 @@ export default function App() {
       )}
       {playGame === 'merge' && (
         <MergeGame myId={auth.myId} character={dinoChar} onExit={() => setPlayGame(null)} />
+      )}
+      {playGame === 'orbit' && (
+        <OrbitGame myId={auth.myId} character={dinoChar} onExit={() => setPlayGame(null)} />
       )}
 
       {/* 픽셀 그림 그리기 → 친구 기기로 전송 */}
