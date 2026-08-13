@@ -364,6 +364,15 @@
     display: flex; flex-direction: column; gap: 2px;
   }
   .flash-meta strong { color: var(--ink-2); font-weight: 600; }
+  .flash-meta .fw-id {
+    font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+    font-size: 13px; font-weight: 600; color: var(--ink);
+  }
+  .flash-meta .fw-id .v {
+    margin-left: 6px; padding: 1px 7px; border-radius: 999px;
+    background: var(--surface-2); border: 1px solid var(--rule-2);
+    font-size: 11px; letter-spacing: .06em; color: var(--ink-2);
+  }
   .flash-unsupported {
     font-size: 13px; color: var(--warn); font-weight: 600;
     padding: 10px 14px; border: 1px solid var(--warn); border-radius: 3px;
@@ -837,6 +846,7 @@
         </div>
 
         <div class="flash-meta">
+          <span id="fw-id" class="fw-id">펌웨어 정보 읽는 중…</span>
           <span><strong>칩:</strong> ESP32-C3 · <strong>보드:</strong> SuperMini</span>
           <span><strong>구성:</strong> bootloader @0x0 · partitions @0x8000 · firmware @0x10000</span>
           <span><strong>요구:</strong> Chrome/Edge 89+ · USB-C 데이터 케이블</span>
@@ -862,5 +872,24 @@
       if (ewt) ewt.hidden = true;
       if (fb) fb.hidden = false;
     }
+  })();
+
+  // 설치될 펌웨어의 이름·버전을 manifest에서 읽어 표시한다.
+  // 설치 대화상자가 쓰는 것과 같은 파일이라 표시가 어긋날 수 없다.
+  (function () {
+    var el = document.getElementById('fw-id');
+    if (!el) return;
+    fetch('/firmware/manifest.json', { cache: 'no-store' })
+      .then(function (r) { return r.json(); })
+      .then(function (m) {
+        el.textContent = m.name || '펌웨어';
+        if (m.version) {
+          var v = document.createElement('span');
+          v.className = 'v';
+          v.textContent = 'v' + m.version;
+          el.appendChild(v);
+        }
+      })
+      .catch(function () { el.textContent = '펌웨어 정보를 읽지 못했습니다'; });
   })();
 </script>

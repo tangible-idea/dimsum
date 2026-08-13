@@ -58,7 +58,7 @@ export default function Gate({ gate, deviceCode, onGoogle, onStart, onRegister, 
       <ol className="steps">
         <li>기기 전원을 켜고, WiFi LED가 깜빡이면 설정 모드예요.<br />
           <span className="dim">(이미 켜져 있다면 탭 버튼을 <b>5초간 길게</b> 눌러 설정 모드로)</span></li>
-        <li>폰의 WiFi 목록에서 <b className="ap">Clicker-XXXX</b> 를 선택해 접속하세요.</li>
+        <li>폰의 WiFi 목록에서 <b className="ap">Dimsum-XXXX</b> 를 선택해 접속하세요.</li>
         <li>자동으로 열리는 설정 페이지에서 <b>집 WiFi</b>를 고르고 비밀번호를 입력해요.</li>
         <li>기기 LED가 꺼지면(연결 완료) 폰을 원래 WiFi로 되돌린 뒤 아래 버튼을 눌러주세요.</li>
       </ol>
