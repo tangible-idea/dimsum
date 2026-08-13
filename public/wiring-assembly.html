@@ -1,4 +1,4 @@
-<title>클리커 납땜 도면</title>
+<title>Clicker 납땜 도면</title>
 <style>
   /* ============================================================
      팔레트 — FR4·솔더마스크 계열의 차가운 그레이 + 구리 액센트
@@ -402,7 +402,7 @@
   <div class="titleblock">
     <div class="tb-main">
       <p class="tb-eyebrow">Assembly Drawing · Rev D</p>
-      <h1>클리커 납땜 도면</h1>
+      <h1>Clicker 납땜 도면</h1>
       <p>부품 4개, 배선 12가닥. 도면의 기호 <span class="ref">A</span>–<span class="ref">M</span>은 아래 결선표의 기호와 같다. 표를 한 줄씩 지워가며 작업하면 빠짐이 없다. <strong>굵은 선은 GND</strong>, 가는 선은 나머지다.</p>
     </div>
     <dl class="tb-grid">
@@ -812,44 +812,6 @@
         <span class="expect">4곳 모두 도통되면 정상</span>
       </div>
     </div>
-    <div class="callout">
-      <span class="tag">전원 후</span>
-      <p>USB를 꽂으면 <strong>부저에서 짧은 3음</strong>이 울리고 OLED에 숫자 <code>0</code>이 뜬다. 그다음 <strong>초록 LED가 0.5초 주기로 깜빡</strong>이면 Wi-Fi를 찾는 중이라는 뜻으로, 여기까지 나오면 배선은 정상이다. 화면이 안 나오면 SDA·SCL이 바뀌었는지부터 본다.</p>
-    </div>
-  </section>
-
-  <!-- ============ 주의할 점 ============ -->
-  <section>
-    <div class="sec-head">
-      <h2>주의할 점</h2>
-      <span>실제로 문제가 됐던 것들</span>
-    </div>
-    <dl class="notes">
-      <div class="note">
-        <dt>LED 직결</dt>
-        <dd>이 도면은 LED를 <strong>전류 제한 저항 없이</strong> GPIO에 바로 문다. ESP32-C3의 GPIO는 핀당 약 <strong>20mA가 권장 한계</strong>라, 저항이 내장되지 않은 LED를 직결하면 이 값을 넘길 수 있다. <strong>쓰는 LED에 저항이 내장돼 있는지 확인</strong>하고, 아니라면 초록 <code>220Ω</code> · 빨강 <code>1kΩ</code>을 넣는 편이 안전하다.</dd>
-      </div>
-      <div class="note">
-        <dt>OLED 전압</dt>
-        <dd>반드시 <strong><code>3V3</code></strong>에 연결한다. 모듈에 <code>5V</code>라고 적혀 있어도 이 보드에서는 <code>3V3</code>을 쓴다.</dd>
-      </div>
-      <div class="note">
-        <dt>GPIO 2</dt>
-        <dd>ESP32-C3의 <strong>스트래핑 핀</strong>이라 리셋 순간의 전압이 부트 모드를 정한다. 피에조는 용량성 부하라 보통 문제없지만, <strong>부팅이 불안정하면 이 핀을 먼저 의심</strong>한다.</dd>
-      </div>
-      <div class="note">
-        <dt>LED 밝기</dt>
-        <dd>초록과 빨강은 순방향 전압이 달라(약 3.0V / 2.0V) 같은 조건에서 <strong>빨강이 더 밝다</strong>. 저항을 빼면 이 차이가 그대로 드러난다 — 신경 쓰이면 코드에서 PWM으로 낮출 수 있다.</dd>
-      </div>
-      <div class="note">
-        <dt>온보드 LED</dt>
-        <dd>SuperMini는 보드에 따라 <code>GPIO 8</code>에 온보드 LED가 물려 있다. I2C 동작에는 지장이 없지만 통신할 때 그 LED가 같이 깜빡일 수 있다 — <strong>고장이 아니다</strong>.</dd>
-      </div>
-      <div class="note">
-        <dt>빈 핀</dt>
-        <dd><code>5V · GPIO 0 · 1 · 4 · 5 · 10 · 20 · 21</code>은 쓰지 않는다. 헤더를 다 붙일 필요 없이 <strong>쓰는 7핀만</strong> 납땜해도 된다.</dd>
-      </div>
-    </dl>
   </section>
 
   <!-- ============ 펌웨어 설치 ============ -->
