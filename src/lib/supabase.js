@@ -14,9 +14,15 @@ export const previewMode = (() => {
   return seg === 'preview';
 })();
 
+// /admin 경로 → 기기 코드 발급 관리자 페이지 (기기 라우팅 대신)
+export const adminMode = (() => {
+  const seg = location.pathname.replace(/^\/+|\/+$/g, '').split('/').pop();
+  return seg === 'admin';
+})();
+
 // URL에서 device_code 추출: /DSJA-JD49... 경로 또는 ?device= 쿼리
 export const deviceCode = (() => {
-  if (previewMode) return null;
+  if (previewMode || adminMode) return null;
   const q = new URLSearchParams(location.search);
   const fromQuery = q.get('device') || q.get('d');
   if (fromQuery) return fromQuery;
@@ -51,6 +57,10 @@ export const rankSubmit = (mbti) =>
 
 export const rankGet = (mbti) =>
   supabase.functions.invoke('clicker_rank_get', { body: mbti ? { mbti } : {} });
+
+// 관리자 전용(clicker_admin_devices). ADMIN_EMAILS에 없는 계정은 403.
+export const adminDevices = (body) =>
+  supabase.functions.invoke('clicker_admin_devices', { body });
 
 export const updateSlug = (myId, slug) =>
   supabase.from('clicker_profiles').update({ slug }).eq('id', myId).select('slug').single();

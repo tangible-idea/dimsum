@@ -23,3 +23,9 @@ verify_jwt = false   # 내부에서 Authorization 헤더로 유저 검증
 
 [functions.clicker_users_search]
 verify_jwt = false   # 내부에서 Authorization 헤더로 유저 검증
+
+[functions.clicker_device_provision]
+verify_jwt = false   # ESP32가 유저 JWT 없이 호출 (x-provision-key로 인증)
+
+[functions.clicker_admin_devices]
+verify_jwt = false   # 내부에서 Authorization 헤더 + ADMIN_EMAILS로 검증

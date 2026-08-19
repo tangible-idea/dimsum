@@ -79,17 +79,34 @@ supabase functions deploy clicker_device_auth clicker_device_register clicker_po
 
 ## 등록 → 기기 세팅 흐름
 
-1. `domain.com/DSJA-JD49...` 진입 → 프론트가 `clicker_device_auth` 호출
-   - `registered:false` → 등록 페이지 → 구글 로그인 → `clicker_device_register`
-   - `clicker_device_register` 응답의 **`device_secret`** 을 ESP32 펌웨어에 주입(빌드 플래그)
-2. 이후 ESP32는 `device_code` + `device_secret`로 `clicker_poke` / `clicker_poke_inbox` 호출
+기기 코드는 **빌드에 박지 않는다.** 모든 보드에 같은 펌웨어를 굽고, 기기가 첫 부팅 때
+스스로 발급받는다. 보드마다 다시 빌드할 일이 없다.
+
+1. 보드에 펌웨어 업로드 (`pio run -t upload`) → 전원 ON → `Clicker-XXXX` AP에서 집 WiFi 설정
+2. WiFi가 붙으면 ESP32가 `clicker_device_provision` 호출
+   - 자기 MAC(`hw_id`) + 공통 공장키(`x-provision-key`)를 보내고 `device_code`/`device_secret`을 받는다
+   - NVS에 저장 → 다음 부팅부턴 건너뛴다. NVS를 잃어도 같은 `hw_id`면 같은 값을 다시 받는다
+3. 아직 주인이 없으므로 기기가 **화면에 코드를 띄운다** (스티커에 미리 인쇄할 수 없으니)
+4. 주인이 `domain.com/<화면의 코드>` 진입 → 구글 로그인 → `clicker_device_register`
+5. 다음 부트스트랩(등록 전엔 5초 주기)에서 성공 → 화면이 카운터로 전환
+
+관리자는 `domain.com/admin` 에서 올라온 기기 목록/라벨/잠금 해제를 관리한다.
+
+### 필요한 시크릿
+
+```bash
+supabase secrets set DEVICE_PROVISION_KEY=<secrets.ini의 provision_key와 같은 값>
+supabase secrets set ADMIN_EMAILS="me@example.com"
+```
 
 ## API 요약
 
 | 함수 | 인증 | body | 용도 |
 |---|---|---|---|
 | `clicker_device_auth` | (선택) 유저 JWT | `{device_code}` | 진입 분기 + 부트스트랩 |
-| `clicker_device_register` | 유저 JWT | `{device_code, label?}` | 기기 클레임, secret 발급 |
+| `clicker_device_provision` | `x-provision-key` | `{hw_id}` | 기기 셀프 발급 (코드+시크릿) |
+| `clicker_device_register` | 유저 JWT | `{device_code, label?}` | 기기 클레임 |
+| `clicker_admin_devices` | 유저 JWT (ADMIN_EMAILS) | `{action, ...}` | 관리자: 목록/라벨/잠금해제/재발급 |
 | `clicker_poke` | `x-device-secret` | `{device_code}` | 친구 전원에게 poke |
 | `clicker_poke_inbox` | `x-device-secret` | `{device_code}` | 내 poke 수신/소비 |
 

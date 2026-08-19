@@ -1,0 +1,121 @@
+/* /admin — 기기 코드 발급 관리자 페이지.
+   styles.css의 게임 셸(고정 레이아웃)과 무관한 문서형 화면이라 색 토큰만 재사용한다. */
+
+.adm {
+  position: static;
+  min-height: 100%;
+  max-width: 940px;
+  margin: 0 auto;
+  padding: 28px 20px 64px;
+  color: var(--ink);
+  font-size: 14px;
+  line-height: 1.5;
+}
+.adm-center { display: grid; place-items: center; min-height: 100vh; }
+
+.adm h1 { font-size: 20px; margin: 0; letter-spacing: -0.01em; }
+.adm h2 { font-size: 15px; margin: 0 0 14px; }
+.adm code, .adm pre { font-family: 'Space Mono', ui-monospace, monospace; }
+.adm-dim { color: var(--muted); font-weight: 400; }
+
+.adm-head {
+  display: flex; align-items: flex-start; justify-content: space-between;
+  gap: 12px; margin-bottom: 20px;
+}
+.adm-head p { margin: 4px 0 0; font-size: 13px; }
+.adm-head2 { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; }
+.adm-head2 h2 { margin: 0; }
+
+.adm-card {
+  background: var(--card);
+  border: 1px solid var(--line-2);
+  border-radius: 14px;
+  padding: 20px;
+  margin-bottom: 16px;
+}
+.adm-login { width: min(360px, 90vw); text-align: center; }
+.adm-login p { margin: 8px 0 20px; font-size: 13px; }
+
+.adm input {
+  height: 38px; padding: 0 12px; font-size: 14px; color: var(--ink);
+  background: var(--bg); border: 1px solid var(--line-2); border-radius: 9px;
+}
+.adm input:focus { outline: none; border-color: var(--ink-mid); }
+
+.adm-btn {
+  height: 38px; padding: 0 20px; cursor: pointer;
+  font-size: 14px; font-weight: 700;
+  color: var(--card); background: var(--ink);
+  border: 1px solid var(--ink); border-radius: 9px;
+}
+.adm-btn:disabled { opacity: 0.5; cursor: default; }
+.adm-ghost {
+  height: 30px; padding: 0 11px; cursor: pointer;
+  font-size: 12px; color: var(--ink-mid);
+  background: transparent; border: 1px solid var(--line-2); border-radius: 8px;
+}
+.adm-ghost:hover { background: var(--chip); }
+.adm-danger { color: #A33; }
+
+.adm-err {
+  padding: 11px 14px; margin-bottom: 16px; font-size: 13px;
+  color: #8A2B2B; background: #FBEEEA; border: 1px solid #F0D6CE; border-radius: 10px;
+}
+
+.adm-ok {
+  padding: 11px 14px; margin-bottom: 16px; font-size: 13px;
+  color: #2C6E49; background: #E9F3EC; border: 1px solid #D3E5D9; border-radius: 10px;
+}
+
+/* ---- 안내 ---- */
+.adm-guide ol { margin: 0; padding-left: 20px; }
+.adm-guide li { margin-bottom: 6px; color: var(--ink-mid); }
+.adm-guide code { font-size: 12.5px; padding: 1px 5px; background: var(--bg); border-radius: 5px; }
+.adm-waiting {
+  margin: 14px 0 0; padding: 10px 12px; font-size: 12.5px;
+  color: var(--ink-mid); background: var(--bg); border: 1px solid var(--line); border-radius: 9px;
+}
+
+/* ---- 라벨 인라인 편집 ---- */
+.adm-label {
+  padding: 3px 7px; margin: -3px -7px; cursor: pointer; font: inherit;
+  color: inherit; background: transparent; border: 1px solid transparent; border-radius: 7px;
+}
+.adm-label:hover { border-color: var(--line-2); background: var(--bg); }
+.adm-labelinput { height: 30px; width: 130px; font-size: 13px; }
+
+/* ---- 시크릿 펼침 행 ---- */
+.adm-detail td { background: var(--bg); padding: 14px 12px; white-space: normal; }
+.adm-row { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; flex-wrap: wrap; }
+.adm-key { flex: 0 0 96px; font-size: 12px; color: var(--muted); }
+.adm-val {
+  flex: 1 1 260px; min-width: 0; padding: 7px 10px; font-size: 13px;
+  overflow-x: auto; white-space: nowrap;
+  background: var(--bg); border: 1px solid var(--line); border-radius: 8px;
+}
+.adm-secret { color: #8A5A00; }
+.adm-copy {
+  flex: 0 0 auto; height: 30px; padding: 0 11px; cursor: pointer;
+  font-size: 12px; color: var(--ink-mid);
+  background: var(--chip); border: 1px solid var(--line-2); border-radius: 8px;
+}
+.adm-step { margin: 12px 0 0; font-size: 12px; }
+
+/* ---- 목록 ---- */
+.adm-tablewrap { overflow-x: auto; }
+.adm-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+.adm-table th {
+  text-align: left; padding: 0 10px 8px; font-size: 11px; font-weight: 500;
+  color: var(--muted); border-bottom: 1px solid var(--line);
+  white-space: nowrap;
+}
+.adm-table td { padding: 10px; border-bottom: 1px solid var(--line); vertical-align: middle; white-space: nowrap; }
+.adm-table tr:last-child td { border-bottom: none; }
+.adm-actions { display: flex; gap: 6px; justify-content: flex-end; }
+.adm-empty { text-align: center; padding: 24px 10px; }
+
+.adm-tag {
+  display: inline-block; padding: 3px 9px; border-radius: 999px;
+  font-size: 11px; color: var(--muted); background: var(--chip);
+}
+.adm-tag.adm-on { color: #2C6E49; background: #E4F0E8; }
