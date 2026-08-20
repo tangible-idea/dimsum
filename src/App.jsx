@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { deviceAuth, deviceCode, deviceRegister, googleLogin, previewMode, supabase } from './lib/supabase';
+import { adminMode, deviceAuth, deviceCode, deviceRegister, googleLogin, previewMode, supabase } from './lib/supabase';
 import { useRealtime } from './hooks/useRealtime';
 import { msgTopic, publish } from './lib/mqtt';
 import { MSG_W, MSG_H } from './lib/bitmap';
@@ -13,6 +13,7 @@ import TabComms from './components/TabComms';
 import PixelDraw from './components/PixelDraw';
 import PixelView from './components/PixelView';
 import PixelDimsum, { Sprite } from './components/PixelDimsum';
+import AdminPage from './components/AdminPage';
 import { IconDumpling, IconGamepad, IconMail } from './components/icons';
 import { ACCESSORIES, ACC_RARITY, PALETTE, STAGES, rollAccessory, stageOf } from './lib/pixels';
 import { CONSUMABLES, STARTER_FRIDGE, consumableSrc } from './lib/consumables';
@@ -186,6 +187,10 @@ const TABS = [
 ];
 
 export default function App() {
+  if (adminMode) {
+    return <AdminPage />;
+  }
+
   const [gate, setGate] = useState({ state: 'loading' });
   const [auth, setAuth] = useState({ ready: false, session: null, myId: null, profile: null });
   const [toastData, setToastData] = useState({ msg: '', ts: 0 });
@@ -373,6 +378,24 @@ export default function App() {
     setFriends(list);
   }, []);
 
+  // ---- 친구 끊기 -----------------------------------------------------------
+  // 양방향 관계라 행이 어느 방향으로 저장돼 있든 지운다. RLS 의
+  // "delete if involved" 정책이 둘 중 한쪽이 나인 행만 허용하므로 남의 관계는 못 건드린다.
+  const removeFriend = useCallback(async (friend) => {
+    if (!auth.myId || !friend?.id || previewMode) return;
+    const { error } = await supabase
+      .from('clicker_friendships')
+      .delete()
+      .or(
+        `and(requester_id.eq.${auth.myId},addressee_id.eq.${friend.id}),` +
+        `and(requester_id.eq.${friend.id},addressee_id.eq.${auth.myId})`,
+      );
+    if (error) { console.warn('[friends] delete', error.message); toast('친구를 끊지 못했어요.'); return; }
+    // 실시간 구독은 friends 를 의존성으로 쓰므로, 목록에서 빼면 그 채널도 함께 끊긴다.
+    setFriends((list) => list.filter((f) => f.id !== friend.id));
+    toast(`${friend.name}님과 친구를 끊었어요.`);
+  }, [auth.myId, toast]);
+
   // 내 ESP32 기기 신호 → 탭 + 게임 입력(미니게임이 열려 있으면 점프)
   const onDeviceSignal = useCallback(() => {
     tap();
@@ -540,7 +563,7 @@ export default function App() {
   // 게임이 계속 리셋된다. 단계/변형이 바뀔 때만 새로 만든다.
   const dinoChar = useMemo(() => dimsumSprite(stageIdx, variant), [stageIdx, variant]);
 
-  // 친구가 없을 때 내 기기로 보내볼 수 있는 대상. name이 그리기 화면 제목에 쓰인다.
+  // 내 기기로 보내보는 대상(항상 열려 있는 자가 점검 경로). name이 그리기 화면 제목에 쓰인다.
   const selfTarget = useMemo(
     () => (auth.myId ? { id: auth.myId, name: '나', me: true } : null),
     [auth.myId],
@@ -625,6 +648,7 @@ export default function App() {
               me={selfTarget}
               onPick={setMsgTarget}
               onOpen={setInbox}
+              onRemove={removeFriend}
             />
           )}
 

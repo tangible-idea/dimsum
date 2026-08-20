@@ -6,8 +6,18 @@ const SUPA_ANON = import.meta.env.VITE_SUPABASE_ANON_KEY ||
 
 export const supabase = createClient(SUPA_URL, SUPA_ANON);
 
+// /admin 경로(또는 #admin, ?admin) → 관리자 모드
+export const adminMode = (() => {
+  const q = new URLSearchParams(location.search);
+  if (q.has('admin')) return true;
+  if (location.hash === '#admin') return true;
+  const seg = location.pathname.replace(/^\/+|\/+$/g, '').split('/').pop();
+  return seg === 'admin';
+})();
+
 // /preview 경로(또는 ?preview) → 로그인 없이 미리보기 모드
 export const previewMode = (() => {
+  if (adminMode) return false;
   const q = new URLSearchParams(location.search);
   if (q.has('preview')) return true;
   const seg = location.pathname.replace(/^\/+|\/+$/g, '').split('/').pop();
@@ -27,7 +37,7 @@ export const deviceCode = (() => {
   const fromQuery = q.get('device') || q.get('d');
   if (fromQuery) return fromQuery;
   const seg = location.pathname.replace(/^\/+|\/+$/g, '').split('/').pop();
-  if (seg && seg !== 'index.html' && !seg.includes('.') && /[A-Za-z0-9]/.test(seg)) return seg;
+  if (seg && seg !== 'index.html' && seg !== 'admin' && seg !== 'preview' && !seg.includes('.') && /[A-Za-z0-9]/.test(seg)) return seg;
   return null;
 })();
 
