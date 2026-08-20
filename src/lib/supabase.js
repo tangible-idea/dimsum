@@ -24,12 +24,6 @@ export const previewMode = (() => {
   return seg === 'preview';
 })();
 
-// /admin 경로 → 기기 코드 발급 관리자 페이지 (기기 라우팅 대신)
-export const adminMode = (() => {
-  const seg = location.pathname.replace(/^\/+|\/+$/g, '').split('/').pop();
-  return seg === 'admin';
-})();
-
 // URL에서 device_code 추출: /DSJA-JD49... 경로 또는 ?device= 쿼리
 export const deviceCode = (() => {
   if (previewMode || adminMode) return null;
