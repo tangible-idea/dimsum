@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { deviceAuth, deviceCode, deviceRegister, googleLogin, previewMode, supabase } from './lib/supabase';
+import { adminMode, deviceAuth, deviceCode, deviceRegister, googleLogin, previewMode, supabase } from './lib/supabase';
 import { useRealtime } from './hooks/useRealtime';
 import { msgTopic, publish } from './lib/mqtt';
 import { MSG_W, MSG_H } from './lib/bitmap';
@@ -13,6 +13,7 @@ import TabComms from './components/TabComms';
 import PixelDraw from './components/PixelDraw';
 import PixelView from './components/PixelView';
 import PixelDimsum, { Sprite } from './components/PixelDimsum';
+import AdminPage from './components/AdminPage';
 import { IconDumpling, IconGamepad, IconMail } from './components/icons';
 import { ACCESSORIES, ACC_RARITY, PALETTE, STAGES, rollAccessory, stageOf } from './lib/pixels';
 import { CONSUMABLES, STARTER_FRIDGE, consumableSrc } from './lib/consumables';
@@ -186,6 +187,10 @@ const TABS = [
 ];
 
 export default function App() {
+  if (adminMode) {
+    return <AdminPage />;
+  }
+
   const [gate, setGate] = useState({ state: 'loading' });
   const [auth, setAuth] = useState({ ready: false, session: null, myId: null, profile: null });
   const [toastData, setToastData] = useState({ msg: '', ts: 0 });
