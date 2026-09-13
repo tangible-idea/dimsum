@@ -5,7 +5,7 @@
 // 반환:
 //   { registered:false }                         → 등록 페이지로
 //   { registered:true, needsLogin:true }         → 구글 로그인 유도
-//   { registered:true, owner:false }             → 다른 계정 소유(접근 거부)
+//   { registered:true, owner:false }             → 다른 계정 소유(가져오기 안내)
 //   { registered:true, owner:true, profile, gameState, friends }
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
@@ -66,7 +66,10 @@ Deno.serve(async (req) => {
     console.log("[device_auth] user:", user.id);
 
     if (user.id !== device.owner_id) {
-      return json({ registered: true, owner: false, error: "이 기기는 다른 계정 소유입니다." }, 403);
+      // 막지 않고 상태만 알려준다. 403 으로 끊으면 supabase-js 가 error 를 채워
+      // 클라이언트의 owner === false 분기까지 가지도 못하고 "서버 오류" 화면이
+      // 떴다. 실제 소유 이전은 clicker_device_register 가 맡는다.
+      return json({ registered: true, owner: false });
     }
 
     // 소유자 확인 → 부트스트랩 데이터

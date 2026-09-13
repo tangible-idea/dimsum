@@ -51,9 +51,14 @@ Deno.serve(async (req) => {
     if (selErr) { console.error("[device_register] select error:", selErr.message); return json({ error: selErr.message }, 500); }
     console.log("[device_register] existing:", existing);
 
-    // 이미 다른 사람 소유면 거부
-    if (existing?.owner_id && existing.owner_id !== user.id) {
-      return json({ error: "이 기기는 이미 다른 계정에 등록되어 있습니다." }, 409);
+    // 다른 계정에 등록돼 있어도 소유를 넘겨받는다.
+    // 기기 코드는 본체와 NFC 스티커에 적혀 있으므로, 코드를 안다는 것은 기기를
+    // 손에 쥐고 있다는 뜻이다. 중고로 넘기거나 가족끼리 바꿔 쓸 때 이전 주인을
+    // 거치지 않고도 자기 계정으로 가져올 수 있어야 한다.
+    const transferredFrom =
+      existing?.owner_id && existing.owner_id !== user.id ? existing.owner_id : null;
+    if (transferredFrom) {
+      console.log("[device_register] ownership transfer:", transferredFrom, "->", user.id);
     }
 
     let device;
@@ -77,7 +82,9 @@ Deno.serve(async (req) => {
     }
 
     console.log("[device_register] OK device:", device?.id);
-    return json({ ok: true, device }); // device.device_secret 포함 (한 번만 노출 → 펌웨어에 주입)
+    // transferred 면 앱이 "다른 계정에서 가져왔다"고 알려준다 — 모르는 사이에
+    // 주인이 바뀌는 것처럼 보이면 안 된다.
+    return json({ ok: true, device, transferred: !!transferredFrom }); // device.device_secret 포함 (한 번만 노출 → 펌웨어에 주입)
   } catch (e) {
     console.error("[device_register] uncaught:", e);
     return json({ error: String(e) }, 500);
