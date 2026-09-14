@@ -86,8 +86,9 @@ export async function patchFirmware(firmware, deviceCode, deviceSecret) {
   const code = (deviceCode || '').trim();
   const secret = (deviceSecret || '').trim();
   if (!code) throw new PatchError('기기 코드가 비어 있어요');
-  if (!secret) throw new PatchError('기기 비밀키(device_secret)가 비어 있어요');
   if (!CODE_RE.test(code)) throw new PatchError(`기기 코드에 쓸 수 없는 문자가 있어요: ${code}`);
+  // 비밀키는 비어 있어도 된다 — 펌웨어가 읽지 않는다(tools/README.md 참고).
+  // 자리는 그대로 두고 0 으로 채운다.
 
   const bytes = new Uint8Array(firmware.slice(0));
   const base = findBlock(bytes);

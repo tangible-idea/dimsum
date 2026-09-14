@@ -1583,8 +1583,8 @@ function FlashDeviceModal({ device, onClose }) {
             {state.version && <span className="adm-flash-ver">펌웨어 v{state.version}</span>}
           </p>
           <p className="adm-flash-note">
-            이 코드와 비밀키를 심은 펌웨어를 브라우저에서 만들어 USB 로 바로 굽습니다.
-            재컴파일은 하지 않아요. 다 구우면 기기가 재부팅되며 WiFi 설정을 받습니다.
+            이 기기 코드를 심은 펌웨어를 브라우저에서 만들어 USB 로 바로 굽습니다.
+            재컴파일은 하지 않아요. 다 구우면 기기가 재부팅되고 BLE 로 앱을 기다립니다.
           </p>
 
           {state.status === 'building' && <p className="adm-flash-note">펌웨어 준비 중…</p>}
@@ -1622,9 +1622,7 @@ function FlashDeviceModal({ device, onClose }) {
 
           <details className="adm-flash-cli">
             <summary>터미널에서 굽기 (여러 대 찍어낼 때)</summary>
-            <pre>{`python3 tools/flash_device.py \\
-  --code ${device.device_code} \\
-  --secret ${device.device_secret}`}</pre>
+            <pre>{`python3 tools/flash_device.py --code ${device.device_code}`}</pre>
           </details>
         </div>
         <div className="adm-modal-actions">
