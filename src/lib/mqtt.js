@@ -35,11 +35,11 @@ export const MSG_PREFIX = 'clicker/msg/';
 // 토픽 끝의 userId 추출.
 export const userIdFromTopic = (topic) => topic.slice(topic.lastIndexOf('/') + 1);
 
-// 객체를 JSON으로 publish (qos 0).
+// 상대 앱이 종료된 동안에도 그림/제어 메시지를 보관하도록 QoS 1로 보낸다.
 export function publish(topic, obj) {
   const client = getMqtt();
   const payload = typeof obj === 'string' ? obj : JSON.stringify(obj);
-  client.publish(topic, payload, { qos: 0 });
+  client.publish(topic, payload, { qos: topic.startsWith(MSG_PREFIX) || topic.startsWith('clicker/ctrl/') ? 1 : 0 });
 }
 
 let client = null;
