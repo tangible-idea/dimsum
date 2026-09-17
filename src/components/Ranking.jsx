@@ -119,7 +119,9 @@ export default function Ranking({ myId, total, previewMode, onClose, onMyRank, t
             )}
             {submitted && (
               <div className="rk-mine">
-                내 순위 <b>#{data.my.rank}</b> · {data.my.mbti} 중 <b>#{data.my.mbti_rank}</b> · {fmt(data.my.score)}탭
+                내 순위 <b>#{data.my.rank}</b>
+                {data.my.mbti_rank ? <> · {data.my.mbti} 중 <b>#{data.my.mbti_rank}</b></> : null}
+                {' · '}{fmt(data.my.score)}탭
               </div>
             )}
 
