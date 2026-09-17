@@ -1,6 +1,15 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "rewrites": [
+    { "source": "/privacypolicy", "destination": "/index.html" },
+    { "source": "/privacypolicy/(.*)", "destination": "/index.html" },
+    { "source": "/privacypolicy.html", "destination": "/index.html" },
+    { "source": "/privacy-policy", "destination": "/index.html" },
+    { "source": "/privacy-policy/(.*)", "destination": "/index.html" },
+    { "source": "/privacy-policy.html", "destination": "/index.html" },
+    { "source": "/privacy", "destination": "/index.html" },
+    { "source": "/privacy/(.*)", "destination": "/index.html" },
+    { "source": "/privacy.html", "destination": "/index.html" },
     { "source": "/firmware/(.*)", "destination": "/firmware/$1" },
     { "source": "/wiring-assembly.html", "destination": "/wiring-assembly.html" },
     { "source": "/((?!firmware|wiring-assembly|assets).*)", "destination": "/index.html" }

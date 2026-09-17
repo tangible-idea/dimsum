@@ -24,14 +24,38 @@ export const previewMode = (() => {
   return seg === 'preview';
 })();
 
+// /privacy 경로(또는 /privacypolicy, /privacy-policy, #privacy, ?privacy) → 개인정보처리방침
+export const privacyMode = (() => {
+  const q = new URLSearchParams(location.search);
+  if (q.has('privacy') || q.has('privacypolicy') || q.has('privacy-policy')) return true;
+  if (location.hash === '#privacy' || location.hash === '#privacypolicy' || location.hash === '#privacy-policy') return true;
+  const seg = location.pathname.replace(/^\/+|\/+$/g, '').split('/').pop()?.toLowerCase();
+  return (
+    seg === 'privacy' ||
+    seg === 'privacypolicy' ||
+    seg === 'privacy-policy' ||
+    seg === 'privacy.html' ||
+    seg === 'privacypolicy.html' ||
+    seg === 'privacy-policy.html'
+  );
+})();
+
 // URL에서 device_code 추출: /DSJA-JD49... 경로 또는 ?device= 쿼리
 export const deviceCode = (() => {
-  if (previewMode || adminMode) return null;
+  if (previewMode || adminMode || privacyMode) return null;
   const q = new URLSearchParams(location.search);
   const fromQuery = q.get('device') || q.get('d');
   if (fromQuery) return fromQuery;
   const seg = location.pathname.replace(/^\/+|\/+$/g, '').split('/').pop();
-  if (seg && seg !== 'index.html' && seg !== 'admin' && seg !== 'preview' && !seg.includes('.') && /[A-Za-z0-9]/.test(seg)) return seg;
+  if (
+    seg &&
+    seg !== 'index.html' &&
+    seg !== 'admin' &&
+    seg !== 'preview' &&
+    !seg.toLowerCase().startsWith('privacy') &&
+    !seg.includes('.') &&
+    /[A-Za-z0-9]/.test(seg)
+  ) return seg;
   return null;
 })();
 

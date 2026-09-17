@@ -14,7 +14,7 @@ const ago = (ts) => {
   return `${Math.floor(s / 86400)}일 전`;
 };
 
-export default function TabComms({ friends, received, me, onPick, onOpen, onRemove }) {
+export default function TabComms({ friends, received, me, onPick, onOpen, onRemove, onPrivacy }) {
   // 삭제는 되돌릴 수 없다(다시 친구를 맺어야 한다). 브라우저 confirm 대신
   // 그 행을 그 자리에서 확인 상태로 바꿔 오조작을 막는다.
   const [confirmId, setConfirmId] = useState(null);
@@ -92,6 +92,16 @@ export default function TabComms({ friends, received, me, onPick, onOpen, onRemo
           )}
         </div>
       </section>
+
+      <div style={{ textAlign: 'center', marginTop: 20, paddingBottom: 16 }}>
+        <button
+          type="button"
+          className="gate-link"
+          onClick={onPrivacy || (() => { window.location.href = '/privacy'; })}
+        >
+          개인정보처리방침 (Privacy Policy)
+        </button>
+      </div>
     </div>
   );
 }

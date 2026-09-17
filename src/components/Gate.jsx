@@ -27,7 +27,7 @@ const LogoAlert = () => (
   </svg>
 );
 
-export default function Gate({ gate, deviceCode, onGoogle, onStart, onRegister, onRetry, onDemo, onLogout, onCopy }) {
+export default function Gate({ gate, deviceCode, onGoogle, onStart, onRegister, onRetry, onDemo, onLogout, onCopy, onPrivacy }) {
   const { state, msg, secret } = gate;
 
   // 로딩: 오프화이트 배경에 딤섬이 춤추는 스플래시(라우팅이 끝날 때까지 표시)
@@ -107,5 +107,20 @@ export default function Gate({ gate, deviceCode, onGoogle, onStart, onRegister, 
     </>);
   }
 
-  return <div className="gate"><div className="card">{body}</div></div>;
+  return (
+    <div className="gate">
+      <div className="card">
+        {body}
+        <div className="gate-footer">
+          <button
+            type="button"
+            className="gate-link"
+            onClick={onPrivacy || (() => { window.location.href = '/privacy'; })}
+          >
+            개인정보처리방침 (Privacy Policy)
+          </button>
+        </div>
+      </div>
+    </div>
+  );
 }

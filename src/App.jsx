@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { adminMode, deviceAuth, deviceCode, deviceRegister, googleLogin, previewMode, supabase } from './lib/supabase';
+import { adminMode, deviceAuth, deviceCode, deviceRegister, googleLogin, previewMode, privacyMode, supabase } from './lib/supabase';
 import { useRealtime } from './hooks/useRealtime';
 import { msgTopic, publish } from './lib/mqtt';
 import { MSG_W, MSG_H } from './lib/bitmap';
@@ -14,6 +14,7 @@ import PixelDraw from './components/PixelDraw';
 import PixelView from './components/PixelView';
 import PixelDimsum, { Sprite } from './components/PixelDimsum';
 import AdminPage from './components/AdminPage';
+import PrivacyPolicy from './components/PrivacyPolicy';
 import { IconDumpling, IconGamepad, IconMail } from './components/icons';
 import { ACCESSORIES, ACC_RARITY, PALETTE, STAGES, rollAccessory, stageOf } from './lib/pixels';
 import { CONSUMABLES, STARTER_FRIDGE, consumableSrc } from './lib/consumables';
@@ -187,11 +188,16 @@ const TABS = [
 ];
 
 export default function App() {
+  if (privacyMode) {
+    return <PrivacyPolicy onBack={() => { window.location.href = '/'; }} />;
+  }
+
   if (adminMode) {
     return <AdminPage />;
   }
 
   const [gate, setGate] = useState({ state: 'loading' });
+  const [showPrivacy, setShowPrivacy] = useState(false);
   const [auth, setAuth] = useState({ ready: false, session: null, myId: null, profile: null });
   const [toastData, setToastData] = useState({ msg: '', ts: 0 });
   const toast = useCallback((msg) => setToastData({ msg, ts: Date.now() }), []);
@@ -649,6 +655,7 @@ export default function App() {
               onPick={setMsgTarget}
               onOpen={setInbox}
               onRemove={removeFriend}
+              onPrivacy={() => setShowPrivacy(true)}
             />
           )}
 
@@ -971,7 +978,14 @@ export default function App() {
           onRetry={boot}
           onLogout={async () => { await supabase.auth.signOut(); googleLogin(); }}
           onCopy={(s) => { try { navigator.clipboard.writeText(s); toast('기기 키를 복사했어요'); } catch (e) { /* ignore */ } }}
+          onPrivacy={() => setShowPrivacy(true)}
         />
+      )}
+
+      {showPrivacy && (
+        <div style={{ position: 'fixed', inset: 0, zIndex: 100 }}>
+          <PrivacyPolicy onBack={() => setShowPrivacy(false)} />
+        </div>
       )}
     </>
   );
