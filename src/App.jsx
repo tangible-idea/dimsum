@@ -498,8 +498,16 @@ export default function App() {
     }
     setGate({ state: 'loading' });
     if (!deviceCode) { await settle(() => setGate({ state: 'nocode' })); return; }
-    const { data: { session } } = await supabase.auth.getSession();
-    const { data: res, error } = await deviceAuth();
+    let { data: { session } } = await supabase.auth.getSession();
+    let { data: res, error } = await deviceAuth();
+    if (error && (error.status === 401 || error.status === 403 || String(error.message).includes('JWT') || String(error.message).includes('claim'))) {
+      console.warn('[boot] invalid or expired session, clearing auth');
+      await supabase.auth.signOut();
+      session = null;
+      const retry = await deviceAuth();
+      res = retry.data;
+      error = retry.error;
+    }
     if (error || !res) { setGate({ state: 'error', msg: await fnError(error, res, '서버에 연결하지 못했어요.') }); return; }
     if (res.registered === false) {
       if (res.exists === false) { await settle(() => setGate({ state: 'notfound' })); return; }
@@ -530,7 +538,15 @@ export default function App() {
   }, [fnError, localLoad, loadFriends, toast]);
   bootRef.current = boot;
 
-  useEffect(() => { boot(); /* eslint-disable-next-line */ }, []);
+  useEffect(() => {
+    boot();
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
+      if (event === 'SIGNED_IN' || event === 'SIGNED_OUT' || event === 'USER_UPDATED') {
+        boot();
+      }
+    });
+    return () => subscription.unsubscribe();
+  }, [boot]);
 
   // 이탈 시 마지막 값 저장
   useEffect(() => {

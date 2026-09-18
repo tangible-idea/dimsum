@@ -68,8 +68,16 @@ export const deviceAuth = () =>
 export const deviceRegister = () =>
   supabase.functions.invoke('clicker_device_register', { body: { device_code: deviceCode } });
 
-export const googleLogin = () =>
-  supabase.auth.signInWithOAuth({ provider: 'google', options: { redirectTo: window.location.href } });
+export const googleLogin = () => {
+  let redirectUrl = window.location.href;
+  if (location.protocol === 'http:' && location.hostname !== 'localhost' && location.hostname !== '127.0.0.1') {
+    redirectUrl = redirectUrl.replace(/^http:/, 'https:');
+  }
+  return supabase.auth.signInWithOAuth({
+    provider: 'google',
+    options: { redirectTo: redirectUrl },
+  });
+};
 
 export const slugLookup = (slug) =>
   supabase.functions.invoke('clicker_slug_lookup', { body: { slug } });
