@@ -108,6 +108,8 @@
 
   .sheet {
     max-width: 1160px;
+    width: 100%;
+    min-width: 0;
     margin: 0 auto;
     padding: clamp(24px, 4vw, 56px) clamp(16px, 3.5vw, 36px) 88px;
     display: flex;
@@ -165,7 +167,7 @@
   }
 
   /* ---------- 섹션 ---------- */
-  section { display: flex; flex-direction: column; gap: 16px; }
+  section { display: flex; flex-direction: column; gap: 16px; min-width: 0; }
   .sec-head {
     display: flex; align-items: baseline; gap: 14px; flex-wrap: wrap;
     padding: 0 4px 12px; border-bottom: 1px solid var(--rule);
@@ -180,7 +182,7 @@
 
   /* ---------- 도면판 ---------- */
   .plate {
-    position: relative; overflow-x: auto;
+    position: relative; overflow-x: auto; width: 100%; min-width: 0; max-width: 100%;
     background: var(--surface); border: 1px solid var(--rule);
     border-radius: 22px; padding: 12px; box-shadow: var(--shadow-lift);
   }
@@ -216,6 +218,8 @@
   .wire-dot.ground { color: var(--w-gnd); }
   .wire-toggle.all { color: var(--accent); }
   .wire-count { min-width: 56px; color: var(--ink-3); font: 600 11px/1 ui-monospace, monospace; text-align: right; }
+
+  .mobile-diagram-nav { display: none; }
 
   .led-wire { transition: opacity .24s ease, filter .24s ease; }
   .led-wire.is-hidden { opacity: 0; filter: blur(1.5px); pointer-events: none; }
@@ -431,8 +435,41 @@
   }
 
   @media (max-width: 620px) {
+    body { line-height: 1.58; }
+    .sheet { padding: 16px 12px 64px; gap: 38px; }
+    .titleblock { border-radius: 18px; }
+    .tb-main { padding: 26px 20px 28px; }
+    .tb-main h1 { font-size: 30px; line-height: 1.12; letter-spacing: -.045em; }
+    .tb-main p { font-size: 14px; }
+    .tb-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .tb-cell { padding: 12px 14px; border-bottom: 1px solid var(--rule); }
+    .tb-cell:nth-child(2n) { border-right: none; }
+    .tb-cell:last-child { grid-column: 1 / -1; border-bottom: none; }
+    .sec-head { gap: 4px 10px; }
+    .sec-head span { width: 100%; font-size: 12.5px; }
+    .plate { margin-inline: -12px; padding: 8px; border-radius: 16px; scroll-behavior: smooth; }
+    .plate svg { min-width: 980px; }
     .wiring-toolbar { align-items: flex-start; flex-direction: column; }
-    .wire-buttons { justify-content: flex-start; }
+    .wiring-toolbar { width: calc(100vw - 18px); margin: 0 0 8px; padding: 11px 12px; border-radius: 12px; }
+    .wire-buttons { width: 100%; justify-content: space-between; }
+    .wire-toggle { min-height: 40px; padding-inline: 13px; }
+    .mobile-diagram-nav {
+      position: sticky; left: 0; z-index: 2;
+      display: flex; gap: 6px; width: calc(100vw - 18px);
+      margin: 0 0 8px; padding: 6px;
+      border: 1px solid var(--rule); border-radius: 12px;
+      background: color-mix(in srgb, var(--surface) 94%, transparent);
+      backdrop-filter: blur(12px);
+    }
+    .diagram-focus {
+      appearance: none; flex: 1; min-height: 36px; padding: 6px 8px;
+      border: 0; border-radius: 8px; background: transparent; color: var(--ink-2);
+      font: 650 11.5px/1 ui-monospace, SFMono-Regular, monospace; cursor: pointer;
+    }
+    .diagram-focus[aria-current="true"] { color: var(--ink); background: var(--accent-soft); }
+    .cards { grid-template-columns: 1fr; }
+    .card { border-radius: 15px; }
+    .table-wrap { border-radius: 14px; }
     .note { grid-template-columns: 1fr; gap: 5px; }
     .step { grid-template-columns: 34px 1fr; gap: 12px; }
     .check { grid-template-columns: 24px 1fr; }
@@ -447,6 +484,7 @@
     .sheet { gap: 30px; padding: 0; }
     section { break-inside: avoid; }
     .wiring-toolbar { display: none; }
+    .mobile-diagram-nav { display: none; }
     .led-wire.is-hidden { opacity: 1; filter: none; }
   }
 </style>
@@ -482,23 +520,23 @@
     <div class="plate">
       <div class="wiring-toolbar" aria-label="LED 3핀 배선 표시 설정">
         <div class="wire-control-copy">
-          <strong>LED 3핀 배선 보기</strong>
-          <span>핀별로 눌러 배선을 숨기거나 다시 표시하세요.</span>
+          <strong>LED 3핀 배선</strong>
+          <span>세 가닥을 한 번에 도면에 넣거나 뺄 수 있어요.</span>
         </div>
         <div class="wire-buttons">
-          <button class="wire-toggle" type="button" data-wire-toggle="green" aria-pressed="true">
-            <span class="wire-dot green" aria-hidden="true"></span>초록 · GPIO 6
+          <button class="wire-toggle all" type="button" data-led-bundle aria-pressed="false">
+            <span class="wire-dot" aria-hidden="true"></span>
+            <span data-led-bundle-label>LED 배선 넣기</span>
           </button>
-          <button class="wire-toggle" type="button" data-wire-toggle="ground" aria-pressed="true">
-            <span class="wire-dot ground" aria-hidden="true"></span>공통 · GND
-          </button>
-          <button class="wire-toggle" type="button" data-wire-toggle="red" aria-pressed="true">
-            <span class="wire-dot red" aria-hidden="true"></span>빨강 · GPIO 7
-          </button>
-          <button class="wire-toggle all" type="button" data-wire-toggle="all" aria-pressed="true">전체 숨기기</button>
-          <span class="wire-count" id="wire-count" aria-live="polite">3 / 3 표시</span>
+          <span class="wire-count" id="wire-count" aria-live="polite">현재 숨김</span>
         </div>
       </div>
+      <nav class="mobile-diagram-nav" aria-label="결선도 빠른 이동">
+        <button class="diagram-focus" type="button" data-focus-x="630">보드</button>
+        <button class="diagram-focus" type="button" data-focus-x="1040">LED</button>
+        <button class="diagram-focus" type="button" data-focus-x="1010">OLED</button>
+        <button class="diagram-focus" type="button" data-focus-x="0">전체</button>
+      </nav>
       <svg viewBox="0 0 1260 900" role="img"
            aria-label="ESP32-C3 SuperMini 결선도. GPIO2 부저, GPIO3 청축 스위치, GPIO6·7 2컬러 LED, GPIO8·9 OLED, 3V3 OLED 전원, 하단 공통 GND 레일. 전원은 USB-C.">
 
@@ -617,7 +655,7 @@
         <!-- J 부저(−) → GND -->
         <path class="w w-gnd" d="M 400,654 L 400,800" />
         <!-- M LED 공통 캐소드 → GND -->
-        <path class="w w-gnd led-wire" data-led-wire="ground" d="M 1026,310 L 1026,420 L 1200,420 L 1200,800" />
+        <path class="w w-gnd led-wire is-hidden" data-led-wire="ground" d="M 1026,310 L 1026,420 L 1200,420 L 1200,800" />
         <!-- E OLED GND → GND (B 배선 위를 넘어감) -->
         <path class="w w-gnd" d="M 848,610 L 806,610 L 806,744 A 8,8 0 0 1 806,760 L 806,800" />
 
@@ -631,9 +669,9 @@
         <path class="w w-sig" d="M 524,510 L 400,510 L 400,566" />
 
         <!-- K GPIO6 → LED 초록(+) -->
-        <path class="w w-sig led-wire" data-led-wire="green" d="M 716,246 L 940,246 L 940,400 L 1010,400 L 1010,310" />
+        <path class="w w-sig led-wire is-hidden" data-led-wire="green" d="M 716,246 L 940,246 L 940,400 L 1010,400 L 1010,310" />
         <!-- L GPIO7 → LED 빨강(+) (M 배선 위를 넘어감) -->
-        <path class="w w-sig led-wire" data-led-wire="red" d="M 716,312 L 900,312 L 900,460 L 1042,460 L 1042,428 A 8,8 0 0 1 1042,412 L 1042,310" />
+        <path class="w w-sig led-wire is-hidden" data-led-wire="red" d="M 716,312 L 900,312 L 900,460 L 1042,460 L 1042,428 A 8,8 0 0 1 1042,412 L 1042,310" />
 
         <!-- C GPIO8 → OLED SDA -->
         <path class="w w-sig" d="M 716,378 L 838,378 L 838,530 L 848,530" />
@@ -1003,54 +1041,58 @@
 </div>
 
 <script>
-  // LED 3핀 배선을 각각 숨기거나 다시 표시한다. 실제 결선 정보는 건드리지 않고
-  // 도면의 선만 토글하므로 핀 위치와 결선표는 언제나 그대로 남는다.
+  // LED 3핀 배선을 한 번에 넣거나 뺀다. 실제 결선 정보는 건드리지 않고 도면의
+  // 선만 토글하므로 핀 위치와 결선표는 언제나 그대로 남는다. 기본값은 숨김이다.
   (function () {
-    var names = ['green', 'ground', 'red'];
-    var buttons = Array.from(document.querySelectorAll('[data-wire-toggle]'));
-    var allButton = document.querySelector('[data-wire-toggle="all"]');
+    var button = document.querySelector('[data-led-bundle]');
+    var label = document.querySelector('[data-led-bundle-label]');
+    var wires = Array.from(document.querySelectorAll('[data-led-wire]'));
     var count = document.getElementById('wire-count');
+    if (!button) return;
 
-    function buttonFor(name) {
-      return document.querySelector('[data-wire-toggle="' + name + '"]');
+    function setVisible(show) {
+      wires.forEach(function (wire) { wire.classList.toggle('is-hidden', !show); });
+      button.setAttribute('aria-pressed', String(show));
+      if (label) label.textContent = show ? 'LED 배선 빼기' : 'LED 배선 넣기';
+      if (count) count.textContent = show ? '3가닥 표시 중' : '현재 숨김';
     }
 
-    function visible(name) {
-      var button = buttonFor(name);
-      return button && button.getAttribute('aria-pressed') === 'true';
-    }
+    button.addEventListener('click', function () {
+      setVisible(button.getAttribute('aria-pressed') !== 'true');
+    });
 
-    function setWire(name, show) {
-      var button = buttonFor(name);
-      var wire = document.querySelector('[data-led-wire="' + name + '"]');
-      if (button) button.setAttribute('aria-pressed', String(show));
-      if (wire) wire.classList.toggle('is-hidden', !show);
-    }
+    setVisible(false);
+  })();
 
-    function refreshAll() {
-      var shown = names.filter(visible).length;
-      var allVisible = shown === names.length;
-      if (allButton) {
-        allButton.setAttribute('aria-pressed', String(allVisible));
-        allButton.textContent = allVisible ? '전체 숨기기' : '전체 표시';
-      }
-      if (count) count.textContent = shown + ' / 3 표시';
+  // 모바일은 도면을 읽을 수 있는 크기로 유지해 가로 스크롤한다. 첫 화면에서는
+  // 보드를 중앙에 놓고, 빠른 이동 버튼으로 LED/OLED 위치를 바로 찾게 한다.
+  (function () {
+    var plate = document.querySelector('.plate');
+    var svg = plate && plate.querySelector('svg');
+    var buttons = Array.from(document.querySelectorAll('[data-focus-x]'));
+    if (!plate || !svg || !buttons.length) return;
+
+    function moveTo(button, behavior) {
+      var x = Number(button.dataset.focusX);
+      var target = x === 0
+        ? 0
+        : (x / 1260) * svg.getBoundingClientRect().width - plate.clientWidth / 2;
+      plate.scrollTo({ left: Math.max(0, target), behavior: behavior || 'smooth' });
+      buttons.forEach(function (item) {
+        item.setAttribute('aria-current', String(item === button));
+      });
     }
 
     buttons.forEach(function (button) {
-      button.addEventListener('click', function () {
-        var name = button.dataset.wireToggle;
-        if (name === 'all') {
-          var show = !names.every(visible);
-          names.forEach(function (wireName) { setWire(wireName, show); });
-        } else {
-          setWire(name, !visible(name));
-        }
-        refreshAll();
-      });
+      button.addEventListener('click', function () { moveTo(button); });
     });
 
-    refreshAll();
+    function startAtBoard() {
+      if (!window.matchMedia('(max-width: 620px)').matches) return;
+      moveTo(buttons[0], 'auto');
+    }
+    requestAnimationFrame(startAtBoard);
+    window.addEventListener('resize', startAtBoard, { passive: true });
   })();
 
   // Web Serial 미지원 시 한국어 폴백 메시지 노출
