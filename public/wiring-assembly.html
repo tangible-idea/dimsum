@@ -199,6 +199,7 @@
   .mobile-diagram .m-part { font: 750 13px/1 ui-monospace, monospace; fill: var(--ink); }
   .mobile-diagram .m-wire { fill: none; stroke: var(--w-sig); stroke-width: 3.5; stroke-linecap: round; stroke-linejoin: round; }
   .mobile-diagram .m-ground { stroke: var(--w-gnd); stroke-width: 5; }
+  .mobile-diagram .m-unused { opacity: .38; }
 
   .wiring-toolbar {
     position: sticky; left: 0; z-index: 2;
@@ -751,8 +752,6 @@
         <!-- ===== OLED ===== -->
         <rect x="860" y="500" width="290" height="180" rx="6" fill="#131A1E" stroke="var(--ink-2)" stroke-width="1.6" />
         <rect x="930" y="524" width="196" height="132" rx="4" fill="#04070A" />
-        <text x="1028" y="612" text-anchor="middle" font-family="ui-monospace, Menlo, monospace"
-              font-size="56" font-weight="600" fill="#F2F6F4">42</text>
         <rect class="pad-fill" x="840" y="522" width="16" height="16" rx="4" />
         <rect class="pad-fill" x="840" y="562" width="16" height="16" rx="4" />
         <rect class="pad-fill" x="840" y="602" width="16" height="16" rx="4" />
@@ -788,7 +787,7 @@
 
       <!-- 모바일 전용: 사용 핀과 부품만 남긴 세로형 결선도 -->
       <svg class="mobile-diagram" viewBox="-20 0 430 650" role="img"
-           aria-label="모바일용 ESP32-C3 SuperMini 결선도. 중앙 보드에서 LED, 스위치, 부저, OLED로 연결되는 사용 핀만 크게 표시.">
+           aria-label="모바일용 ESP32-C3 SuperMini 전체 핀 결선도. 사용 핀은 밝게, 미사용 핀은 회색으로 표시하고 LED, 스위치, 부저, OLED 배선을 함께 표시.">
         <defs>
           <linearGradient id="mobile-pcb" x1="0" y1="0" x2="1" y2="1">
             <stop offset="0" stop-color="#20282B" />
@@ -800,8 +799,8 @@
           </linearGradient>
         </defs>
 
-        <text class="m-title" x="195" y="28" text-anchor="middle">사용 핀만 보는 간단 결선도</text>
-        <text class="m-sub" x="195" y="48" text-anchor="middle">선 끝의 핀 이름을 확인하고 그대로 연결하세요</text>
+        <text class="m-title" x="195" y="28" text-anchor="middle">전체 핀을 함께 보는 간단 결선도</text>
+        <text class="m-sub" x="195" y="48" text-anchor="middle">회색은 미사용 핀 · 밝은 핀만 배선하세요</text>
 
         <!-- ESP32-C3 SuperMini -->
         <g>
@@ -811,49 +810,48 @@
           <rect x="176" y="82" width="38" height="6" rx="3" fill="#090D0E" />
           <circle cx="195" cy="122" r="6" fill="#42D77C" />
           <text x="195" y="145" text-anchor="middle" fill="#A8B3B3" font-family="ui-monospace, monospace" font-size="9">STATUS LED</text>
-          <text x="195" y="285" text-anchor="middle" fill="#E3E9E6" font-family="ui-monospace, monospace" font-size="13" font-weight="700" letter-spacing="1.2">C3 SUPERMINI</text>
-          <path d="M148 301 H242" stroke="#D7DEDA" opacity=".25" />
+          <text x="195" y="494" text-anchor="middle" fill="#E3E9E6" font-family="ui-monospace, monospace" font-size="11" font-weight="700" letter-spacing="1">C3 SUPERMINI</text>
 
-          <!-- 왼쪽 사용 핀 -->
+          <!-- 왼쪽 전체 핀: 5V·4·1·0은 미사용 -->
           <g>
-            <rect x="121" y="166" width="32" height="24" rx="12" fill="var(--pad)" /><circle cx="135" cy="178" r="6" fill="var(--pad-hole)" />
-            <text class="m-pin" x="161" y="179">G</text>
-            <rect x="121" y="216" width="32" height="24" rx="12" fill="var(--pad)" /><circle cx="135" cy="228" r="6" fill="var(--pad-hole)" />
-            <text class="m-pin" x="161" y="229">3.3</text>
-            <rect x="121" y="316" width="32" height="24" rx="12" fill="var(--pad)" /><circle cx="135" cy="328" r="6" fill="var(--pad-hole)" />
-            <text class="m-pin" x="161" y="329">3</text>
-            <rect x="121" y="366" width="32" height="24" rx="12" fill="var(--pad)" /><circle cx="135" cy="378" r="6" fill="var(--pad-hole)" />
-            <text class="m-pin" x="161" y="379">2</text>
+            <g class="m-unused"><rect x="121" y="158" width="32" height="24" rx="12" fill="var(--pad)" /><circle cx="135" cy="170" r="6" fill="var(--pad-hole)" /><text class="m-pin" x="161" y="171">5V</text></g>
+            <rect x="121" y="200" width="32" height="24" rx="12" fill="var(--pad)" /><circle cx="135" cy="212" r="6" fill="var(--pad-hole)" /><text class="m-pin" x="161" y="213">G</text>
+            <rect x="121" y="242" width="32" height="24" rx="12" fill="var(--pad)" /><circle cx="135" cy="254" r="6" fill="var(--pad-hole)" /><text class="m-pin" x="161" y="255">3.3</text>
+            <g class="m-unused"><rect x="121" y="284" width="32" height="24" rx="12" fill="var(--pad)" /><circle cx="135" cy="296" r="6" fill="var(--pad-hole)" /><text class="m-pin" x="161" y="297">4</text></g>
+            <rect x="121" y="326" width="32" height="24" rx="12" fill="var(--pad)" /><circle cx="135" cy="338" r="6" fill="var(--pad-hole)" /><text class="m-pin" x="161" y="339">3</text>
+            <rect x="121" y="368" width="32" height="24" rx="12" fill="var(--pad)" /><circle cx="135" cy="380" r="6" fill="var(--pad-hole)" /><text class="m-pin" x="161" y="381">2</text>
+            <g class="m-unused"><rect x="121" y="410" width="32" height="24" rx="12" fill="var(--pad)" /><circle cx="135" cy="422" r="6" fill="var(--pad-hole)" /><text class="m-pin" x="161" y="423">1</text></g>
+            <g class="m-unused"><rect x="121" y="452" width="32" height="24" rx="12" fill="var(--pad)" /><circle cx="135" cy="464" r="6" fill="var(--pad-hole)" /><text class="m-pin" x="161" y="465">0</text></g>
           </g>
 
-          <!-- 오른쪽 사용 핀 -->
+          <!-- 오른쪽 전체 핀: 5·10·20·21은 미사용 -->
           <g>
-            <rect x="237" y="166" width="32" height="24" rx="12" fill="var(--pad)" /><circle cx="255" cy="178" r="6" fill="var(--pad-hole)" />
-            <text class="m-pin" x="228" y="179" text-anchor="end">6</text>
-            <rect x="237" y="216" width="32" height="24" rx="12" fill="var(--pad)" /><circle cx="255" cy="228" r="6" fill="var(--pad-hole)" />
-            <text class="m-pin" x="228" y="229" text-anchor="end">7</text>
-            <rect x="237" y="316" width="32" height="24" rx="12" fill="var(--pad)" /><circle cx="255" cy="328" r="6" fill="var(--pad-hole)" />
-            <text class="m-pin" x="228" y="329" text-anchor="end">8</text>
-            <rect x="237" y="366" width="32" height="24" rx="12" fill="var(--pad)" /><circle cx="255" cy="378" r="6" fill="var(--pad-hole)" />
-            <text class="m-pin" x="228" y="379" text-anchor="end">9</text>
+            <g class="m-unused"><rect x="237" y="158" width="32" height="24" rx="12" fill="var(--pad)" /><circle cx="255" cy="170" r="6" fill="var(--pad-hole)" /><text class="m-pin" x="228" y="171" text-anchor="end">5</text></g>
+            <rect x="237" y="200" width="32" height="24" rx="12" fill="var(--pad)" /><circle cx="255" cy="212" r="6" fill="var(--pad-hole)" /><text class="m-pin" x="228" y="213" text-anchor="end">6</text>
+            <rect x="237" y="242" width="32" height="24" rx="12" fill="var(--pad)" /><circle cx="255" cy="254" r="6" fill="var(--pad-hole)" /><text class="m-pin" x="228" y="255" text-anchor="end">7</text>
+            <rect x="237" y="284" width="32" height="24" rx="12" fill="var(--pad)" /><circle cx="255" cy="296" r="6" fill="var(--pad-hole)" /><text class="m-pin" x="228" y="297" text-anchor="end">8</text>
+            <rect x="237" y="326" width="32" height="24" rx="12" fill="var(--pad)" /><circle cx="255" cy="338" r="6" fill="var(--pad-hole)" /><text class="m-pin" x="228" y="339" text-anchor="end">9</text>
+            <g class="m-unused"><rect x="237" y="368" width="32" height="24" rx="12" fill="var(--pad)" /><circle cx="255" cy="380" r="6" fill="var(--pad-hole)" /><text class="m-pin" x="228" y="381" text-anchor="end">10</text></g>
+            <g class="m-unused"><rect x="237" y="410" width="32" height="24" rx="12" fill="var(--pad)" /><circle cx="255" cy="422" r="6" fill="var(--pad-hole)" /><text class="m-pin" x="228" y="423" text-anchor="end">20</text></g>
+            <g class="m-unused"><rect x="237" y="452" width="32" height="24" rx="12" fill="var(--pad)" /><circle cx="255" cy="464" r="6" fill="var(--pad-hole)" /><text class="m-pin" x="228" y="465" text-anchor="end">21</text></g>
           </g>
         </g>
 
         <!-- 배선: 부품보다 먼저 그려 선이 단자 아래로 들어가게 한다 -->
-        <path class="m-wire m-ground" d="M122 178 H14 V574 H368" />
-        <path class="m-wire" d="M122 328 H88" />
-        <path class="m-wire m-ground" d="M52 354 V574" />
-        <path class="m-wire" d="M122 378 H82 V462 H72" />
-        <path class="m-wire m-ground" d="M52 488 V574" />
+        <path class="m-wire m-ground" d="M122 212 H14 V574 H368" />
+        <path class="m-wire" d="M122 338 H88" />
+        <path class="m-wire m-ground" d="M52 356 H14" />
+        <path class="m-wire" d="M122 380 H102 V462 H87" />
+        <path class="m-wire m-ground" d="M52 497 V574" />
 
-        <path class="m-wire led-wire is-hidden" data-led-wire="green" d="M268 178 H286 V218 H316 V201" />
-        <path class="m-wire led-wire is-hidden" data-led-wire="red" d="M268 228 H296 V236 H338 V201" />
+        <path class="m-wire led-wire is-hidden" data-led-wire="green" d="M268 212 H286 V218 H316 V201" />
+        <path class="m-wire led-wire is-hidden" data-led-wire="red" d="M268 254 H296 V236 H338 V201" />
         <path class="m-wire m-ground led-wire is-hidden" data-led-wire="ground" d="M327 201 V574" />
 
-        <path class="m-wire" d="M268 328 H278 V349 H286" />
-        <path class="m-wire" d="M268 378 H275 V379 H286" />
+        <path class="m-wire" d="M268 296 H278 V349 H286" />
+        <path class="m-wire" d="M268 338 H275 V379 H286" />
         <path class="m-wire m-ground" d="M286 409 H276 V574" />
-        <path class="m-wire" d="M122 228 H104 V542 H264 V439 H286" />
+        <path class="m-wire" d="M122 254 H110 V550 H264 V439 H286" />
 
         <!-- 청축 스위치 -->
         <g>
@@ -889,7 +887,6 @@
         <g>
           <rect x="286" y="320" width="96" height="145" rx="7" fill="#131A1E" stroke="var(--ink-2)" stroke-width="1.5" />
           <rect x="307" y="340" width="63" height="84" rx="4" fill="#030708" />
-          <text x="338.5" y="392" text-anchor="middle" fill="#F2F6F4" font-family="ui-monospace, monospace" font-size="29" font-weight="700">42</text>
           <g fill="var(--pad)">
             <rect x="280" y="343" width="12" height="12" rx="3" /><rect x="280" y="373" width="12" height="12" rx="3" />
             <rect x="280" y="403" width="12" height="12" rx="3" /><rect x="280" y="433" width="12" height="12" rx="3" />
@@ -904,6 +901,7 @@
         <circle cx="52" cy="574" r="5" fill="var(--w-gnd)" />
         <circle cx="276" cy="574" r="5" fill="var(--w-gnd)" />
         <circle cx="327" cy="574" r="5" fill="var(--w-gnd)" />
+        <text class="m-sub" x="195" y="531" text-anchor="middle">회색 패드 = 미사용 핀</text>
         <text class="m-title" x="14" y="605">공통 GND 레일</text>
         <text class="m-sub" x="14" y="625">모든 부품의 −를 이 굵은 선에 모읍니다</text>
       </svg>
