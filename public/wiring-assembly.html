@@ -551,10 +551,6 @@
             <stop offset="0.5" stop-color="#AAB2B5" />
             <stop offset="1" stop-color="#737D81" />
           </linearGradient>
-          <linearGradient id="chip-real" x1="0" y1="0" x2="1" y2="1">
-            <stop offset="0" stop-color="#30383B" />
-            <stop offset="1" stop-color="#111619" />
-          </linearGradient>
           <filter id="board-shadow" x="-20%" y="-10%" width="140%" height="130%">
             <feDropShadow dx="0" dy="10" stdDeviation="9" flood-color="#071013" flood-opacity=".28" />
           </filter>
@@ -618,21 +614,6 @@
             <rect x="634" y="236" width="10" height="5" rx="2" /><rect x="551" y="262" width="12" height="6" rx="2" />
             <rect x="570" y="262" width="12" height="6" rx="2" /><rect x="674" y="261" width="13" height="6" rx="2" />
           </g>
-        </g>
-
-        <!-- ESP32-C3FN4 QFN 칩 -->
-        <g>
-          <rect x="566" y="292" width="108" height="108" rx="7" fill="url(#chip-real)" stroke="#4A5558" stroke-width="1.5" />
-          <g stroke="#A7AFAD" stroke-width="3">
-            <path d="M574 286v10 M590 286v10 M606 286v10 M622 286v10 M638 286v10 M654 286v10 M670 286v10" />
-            <path d="M574 396v10 M590 396v10 M606 396v10 M622 396v10 M638 396v10 M654 396v10 M670 396v10" />
-            <path d="M560 300h10 M560 316h10 M560 332h10 M560 348h10 M560 364h10 M560 380h10" />
-            <path d="M670 300h10 M670 316h10 M670 332h10 M670 348h10 M670 364h10 M670 380h10" />
-          </g>
-          <circle cx="580" cy="307" r="4" fill="#858F91" />
-          <text x="620" y="338" text-anchor="middle" fill="#E8ECEA" font-family="ui-monospace, Menlo, monospace" font-size="14" font-weight="700">ESP32-C3</text>
-          <text x="620" y="360" text-anchor="middle" fill="#9DA7A8" font-family="ui-monospace, Menlo, monospace" font-size="10">RISC-V · 4MB</text>
-          <text x="620" y="380" text-anchor="middle" fill="#707B7E" font-family="ui-monospace, Menlo, monospace" font-size="8">Wi-Fi · BLE 5</text>
         </g>
 
         <!-- 보드 실크와 하단 세라믹 안테나 -->
