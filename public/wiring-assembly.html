@@ -1,3 +1,8 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Clicker</title>
 <style>
   /* ============================================================
@@ -187,6 +192,13 @@
     border-radius: 22px; padding: 12px; box-shadow: var(--shadow-lift);
   }
   .plate svg { display: block; width: 100%; min-width: 900px; height: auto; }
+  .mobile-diagram { display: none !important; }
+  .mobile-diagram .m-title { font: 750 15px/1 ui-monospace, monospace; fill: var(--ink); }
+  .mobile-diagram .m-sub { font: 500 12px/1.2 system-ui, sans-serif; fill: var(--ink-3); }
+  .mobile-diagram .m-pin { font: 750 15px/1 ui-monospace, monospace; fill: var(--silk); dominant-baseline: middle; }
+  .mobile-diagram .m-part { font: 750 13px/1 ui-monospace, monospace; fill: var(--ink); }
+  .mobile-diagram .m-wire { fill: none; stroke: var(--w-sig); stroke-width: 3.5; stroke-linecap: round; stroke-linejoin: round; }
+  .mobile-diagram .m-ground { stroke: var(--w-gnd); stroke-width: 5; }
 
   .wiring-toolbar {
     position: sticky; left: 0; z-index: 2;
@@ -218,8 +230,6 @@
   .wire-dot.ground { color: var(--w-gnd); }
   .wire-toggle.all { color: var(--accent); }
   .wire-count { min-width: 56px; color: var(--ink-3); font: 600 11px/1 ui-monospace, monospace; text-align: right; }
-
-  .mobile-diagram-nav { display: none; }
 
   .led-wire { transition: opacity .24s ease, filter .24s ease; }
   .led-wire.is-hidden { opacity: 0; filter: blur(1.5px); pointer-events: none; }
@@ -447,26 +457,17 @@
     .tb-cell:last-child { grid-column: 1 / -1; border-bottom: none; }
     .sec-head { gap: 4px 10px; }
     .sec-head span { width: 100%; font-size: 12.5px; }
-    .plate { margin-inline: -12px; padding: 8px; border-radius: 16px; scroll-behavior: smooth; }
-    .plate svg { min-width: 980px; }
+    .plate { width: 100vw; max-width: none; box-sizing: border-box; margin-inline: -12px; padding: 8px; border-radius: 16px; overflow-x: hidden; }
+    .plate .desktop-diagram { display: none !important; }
+    .plate .mobile-diagram {
+      display: block !important;
+      width: calc(100vw - 16px) !important;
+      min-width: 0; max-width: calc(100vw - 16px); height: auto;
+    }
     .wiring-toolbar { align-items: flex-start; flex-direction: column; }
     .wiring-toolbar { width: calc(100vw - 18px); margin: 0 0 8px; padding: 11px 12px; border-radius: 12px; }
     .wire-buttons { width: 100%; justify-content: space-between; }
     .wire-toggle { min-height: 40px; padding-inline: 13px; }
-    .mobile-diagram-nav {
-      position: sticky; left: 0; z-index: 2;
-      display: flex; gap: 6px; width: calc(100vw - 18px);
-      margin: 0 0 8px; padding: 6px;
-      border: 1px solid var(--rule); border-radius: 12px;
-      background: color-mix(in srgb, var(--surface) 94%, transparent);
-      backdrop-filter: blur(12px);
-    }
-    .diagram-focus {
-      appearance: none; flex: 1; min-height: 36px; padding: 6px 8px;
-      border: 0; border-radius: 8px; background: transparent; color: var(--ink-2);
-      font: 650 11.5px/1 ui-monospace, SFMono-Regular, monospace; cursor: pointer;
-    }
-    .diagram-focus[aria-current="true"] { color: var(--ink); background: var(--accent-soft); }
     .cards { grid-template-columns: 1fr; }
     .card { border-radius: 15px; }
     .table-wrap { border-radius: 14px; }
@@ -484,10 +485,11 @@
     .sheet { gap: 30px; padding: 0; }
     section { break-inside: avoid; }
     .wiring-toolbar { display: none; }
-    .mobile-diagram-nav { display: none; }
     .led-wire.is-hidden { opacity: 1; filter: none; }
   }
 </style>
+</head>
+<body>
 
 <!-- ESP Web Tools: 브라우저(Web Serial API)에서 USB로 펌웨어 플래시 -->
 <script type="module" src="https://unpkg.com/esp-web-tools@10/dist/web/install-button.js?module"></script>
@@ -531,13 +533,7 @@
           <span class="wire-count" id="wire-count" aria-live="polite">현재 숨김</span>
         </div>
       </div>
-      <nav class="mobile-diagram-nav" aria-label="결선도 빠른 이동">
-        <button class="diagram-focus" type="button" data-focus-x="630">보드</button>
-        <button class="diagram-focus" type="button" data-focus-x="1040">LED</button>
-        <button class="diagram-focus" type="button" data-focus-x="1010">OLED</button>
-        <button class="diagram-focus" type="button" data-focus-x="0">전체</button>
-      </nav>
-      <svg viewBox="0 0 1260 900" role="img"
+      <svg class="desktop-diagram" viewBox="0 0 1260 900" role="img"
            aria-label="ESP32-C3 SuperMini 결선도. GPIO2 부저, GPIO3 청축 스위치, GPIO6·7 2컬러 LED, GPIO8·9 OLED, 3V3 OLED 전원, 하단 공통 GND 레일. 전원은 USB-C.">
 
         <defs>
@@ -789,6 +785,128 @@
         </g>
 
       </svg>
+
+      <!-- 모바일 전용: 사용 핀과 부품만 남긴 세로형 결선도 -->
+      <svg class="mobile-diagram" viewBox="-20 0 430 650" role="img"
+           aria-label="모바일용 ESP32-C3 SuperMini 결선도. 중앙 보드에서 LED, 스위치, 부저, OLED로 연결되는 사용 핀만 크게 표시.">
+        <defs>
+          <linearGradient id="mobile-pcb" x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0" stop-color="#20282B" />
+            <stop offset="1" stop-color="#050809" />
+          </linearGradient>
+          <linearGradient id="mobile-usb" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0" stop-color="#EFF3F3" />
+            <stop offset="1" stop-color="#7B8588" />
+          </linearGradient>
+        </defs>
+
+        <text class="m-title" x="195" y="28" text-anchor="middle">사용 핀만 보는 간단 결선도</text>
+        <text class="m-sub" x="195" y="48" text-anchor="middle">선 끝의 핀 이름을 확인하고 그대로 연결하세요</text>
+
+        <!-- ESP32-C3 SuperMini -->
+        <g>
+          <rect x="122" y="96" width="146" height="414" rx="15" fill="url(#mobile-pcb)" stroke="#445053" stroke-width="2" />
+          <path d="M159 77 Q159 71 165 71 H225 Q231 71 231 77 V100 H159Z" fill="url(#mobile-usb)" stroke="#707A7D" />
+          <rect x="168" y="78" width="54" height="14" rx="7" fill="#222A2D" />
+          <rect x="176" y="82" width="38" height="6" rx="3" fill="#090D0E" />
+          <circle cx="195" cy="122" r="6" fill="#42D77C" />
+          <text x="195" y="145" text-anchor="middle" fill="#A8B3B3" font-family="ui-monospace, monospace" font-size="9">STATUS LED</text>
+          <text x="195" y="285" text-anchor="middle" fill="#E3E9E6" font-family="ui-monospace, monospace" font-size="13" font-weight="700" letter-spacing="1.2">C3 SUPERMINI</text>
+          <path d="M148 301 H242" stroke="#D7DEDA" opacity=".25" />
+
+          <!-- 왼쪽 사용 핀 -->
+          <g>
+            <rect x="121" y="166" width="32" height="24" rx="12" fill="var(--pad)" /><circle cx="135" cy="178" r="6" fill="var(--pad-hole)" />
+            <text class="m-pin" x="161" y="179">G</text>
+            <rect x="121" y="216" width="32" height="24" rx="12" fill="var(--pad)" /><circle cx="135" cy="228" r="6" fill="var(--pad-hole)" />
+            <text class="m-pin" x="161" y="229">3.3</text>
+            <rect x="121" y="316" width="32" height="24" rx="12" fill="var(--pad)" /><circle cx="135" cy="328" r="6" fill="var(--pad-hole)" />
+            <text class="m-pin" x="161" y="329">3</text>
+            <rect x="121" y="366" width="32" height="24" rx="12" fill="var(--pad)" /><circle cx="135" cy="378" r="6" fill="var(--pad-hole)" />
+            <text class="m-pin" x="161" y="379">2</text>
+          </g>
+
+          <!-- 오른쪽 사용 핀 -->
+          <g>
+            <rect x="237" y="166" width="32" height="24" rx="12" fill="var(--pad)" /><circle cx="255" cy="178" r="6" fill="var(--pad-hole)" />
+            <text class="m-pin" x="228" y="179" text-anchor="end">6</text>
+            <rect x="237" y="216" width="32" height="24" rx="12" fill="var(--pad)" /><circle cx="255" cy="228" r="6" fill="var(--pad-hole)" />
+            <text class="m-pin" x="228" y="229" text-anchor="end">7</text>
+            <rect x="237" y="316" width="32" height="24" rx="12" fill="var(--pad)" /><circle cx="255" cy="328" r="6" fill="var(--pad-hole)" />
+            <text class="m-pin" x="228" y="329" text-anchor="end">8</text>
+            <rect x="237" y="366" width="32" height="24" rx="12" fill="var(--pad)" /><circle cx="255" cy="378" r="6" fill="var(--pad-hole)" />
+            <text class="m-pin" x="228" y="379" text-anchor="end">9</text>
+          </g>
+        </g>
+
+        <!-- 배선: 부품보다 먼저 그려 선이 단자 아래로 들어가게 한다 -->
+        <path class="m-wire m-ground" d="M122 178 H14 V574 H368" />
+        <path class="m-wire" d="M122 328 H88" />
+        <path class="m-wire m-ground" d="M52 354 V574" />
+        <path class="m-wire" d="M122 378 H82 V462 H72" />
+        <path class="m-wire m-ground" d="M52 488 V574" />
+
+        <path class="m-wire led-wire is-hidden" data-led-wire="green" d="M268 178 H286 V218 H316 V201" />
+        <path class="m-wire led-wire is-hidden" data-led-wire="red" d="M268 228 H296 V236 H338 V201" />
+        <path class="m-wire m-ground led-wire is-hidden" data-led-wire="ground" d="M327 201 V574" />
+
+        <path class="m-wire" d="M268 328 H278 V349 H286" />
+        <path class="m-wire" d="M268 378 H275 V379 H286" />
+        <path class="m-wire m-ground" d="M286 409 H276 V574" />
+        <path class="m-wire" d="M122 228 H104 V542 H264 V439 H286" />
+
+        <!-- 청축 스위치 -->
+        <g>
+          <rect x="24" y="292" width="64" height="64" rx="8" fill="#20272D" stroke="var(--ink-2)" stroke-width="1.5" />
+          <rect x="34" y="302" width="44" height="44" rx="5" fill="#2B343C" />
+          <path d="M56 309 V339 M41 324 H71" stroke="#4380E6" stroke-width="12" stroke-linecap="round" />
+          <circle cx="88" cy="328" r="5" fill="var(--pad)" /><circle cx="52" cy="356" r="5" fill="var(--pad)" />
+          <text class="m-part" x="56" y="379" text-anchor="middle">스위치</text>
+          <text class="m-sub" x="56" y="397" text-anchor="middle">GPIO 3</text>
+        </g>
+
+        <!-- 피에조 부저 -->
+        <g>
+          <circle cx="52" cy="462" r="35" fill="#1A2024" stroke="var(--ink-2)" stroke-width="1.5" />
+          <circle cx="52" cy="462" r="22" fill="#262F35" />
+          <circle cx="52" cy="449" r="4" fill="#050809" />
+          <text x="76" y="443" fill="var(--w-sig)" font-size="16" font-weight="800">+</text>
+          <text class="m-part" x="52" y="516" text-anchor="middle">부저</text>
+          <text class="m-sub" x="52" y="534" text-anchor="middle">GPIO 2</text>
+        </g>
+
+        <!-- 2컬러 LED -->
+        <g>
+          <text class="m-part" x="327" y="86" text-anchor="middle">LED</text>
+          <text class="m-sub" x="327" y="103" text-anchor="middle">3핀</text>
+          <rect x="305" y="116" width="44" height="85" rx="6" fill="#30935C" stroke="var(--ink-2)" />
+          <path d="M305 158 H349 V195 Q349 201 343 201 H311 Q305 201 305 195Z" fill="#CC3E31" />
+          <path d="M316 201 V218 M327 201 V218 M338 201 V218" stroke="var(--pad)" stroke-width="3" />
+          <text class="m-sub" x="327" y="260" text-anchor="middle">6 · GND · 7</text>
+        </g>
+
+        <!-- OLED -->
+        <g>
+          <rect x="286" y="320" width="96" height="145" rx="7" fill="#131A1E" stroke="var(--ink-2)" stroke-width="1.5" />
+          <rect x="307" y="340" width="63" height="84" rx="4" fill="#030708" />
+          <text x="338.5" y="392" text-anchor="middle" fill="#F2F6F4" font-family="ui-monospace, monospace" font-size="29" font-weight="700">42</text>
+          <g fill="var(--pad)">
+            <rect x="280" y="343" width="12" height="12" rx="3" /><rect x="280" y="373" width="12" height="12" rx="3" />
+            <rect x="280" y="403" width="12" height="12" rx="3" /><rect x="280" y="433" width="12" height="12" rx="3" />
+          </g>
+          <text class="m-sub" x="299" y="353">SDA</text><text class="m-sub" x="299" y="383">SCL</text>
+          <text class="m-sub" x="299" y="413">GND</text><text class="m-sub" x="299" y="443">3V3</text>
+          <text class="m-part" x="334" y="488" text-anchor="middle">OLED</text>
+          <text class="m-sub" x="334" y="506" text-anchor="middle">GPIO 8 · 9</text>
+        </g>
+
+        <!-- 공통 GND 레일 -->
+        <circle cx="52" cy="574" r="5" fill="var(--w-gnd)" />
+        <circle cx="276" cy="574" r="5" fill="var(--w-gnd)" />
+        <circle cx="327" cy="574" r="5" fill="var(--w-gnd)" />
+        <text class="m-title" x="14" y="605">공통 GND 레일</text>
+        <text class="m-sub" x="14" y="625">모든 부품의 −를 이 굵은 선에 모읍니다</text>
+      </svg>
     </div>
 
     <div class="callout">
@@ -1032,37 +1150,6 @@
     setVisible(false);
   })();
 
-  // 모바일은 도면을 읽을 수 있는 크기로 유지해 가로 스크롤한다. 첫 화면에서는
-  // 보드를 중앙에 놓고, 빠른 이동 버튼으로 LED/OLED 위치를 바로 찾게 한다.
-  (function () {
-    var plate = document.querySelector('.plate');
-    var svg = plate && plate.querySelector('svg');
-    var buttons = Array.from(document.querySelectorAll('[data-focus-x]'));
-    if (!plate || !svg || !buttons.length) return;
-
-    function moveTo(button, behavior) {
-      var x = Number(button.dataset.focusX);
-      var target = x === 0
-        ? 0
-        : (x / 1260) * svg.getBoundingClientRect().width - plate.clientWidth / 2;
-      plate.scrollTo({ left: Math.max(0, target), behavior: behavior || 'smooth' });
-      buttons.forEach(function (item) {
-        item.setAttribute('aria-current', String(item === button));
-      });
-    }
-
-    buttons.forEach(function (button) {
-      button.addEventListener('click', function () { moveTo(button); });
-    });
-
-    function startAtBoard() {
-      if (!window.matchMedia('(max-width: 620px)').matches) return;
-      moveTo(buttons[0], 'auto');
-    }
-    requestAnimationFrame(startAtBoard);
-    window.addEventListener('resize', startAtBoard, { passive: true });
-  })();
-
   // Web Serial 미지원 시 한국어 폴백 메시지 노출
   (function () {
     var ok = 'serial' in navigator && window.isSecureContext;
@@ -1093,3 +1180,5 @@
       .catch(function () { el.textContent = '펌웨어 정보를 읽지 못했습니다'; });
   })();
 </script>
+</body>
+</html>
