@@ -5,15 +5,16 @@
      배선은 두 가지만: GND(검정 · 굵게) / 나머지(빨강)
      ============================================================ */
   :root {
-    --ground:   #EFF2F1;
-    --surface:  #FAFCFB;
-    --surface-2:#F2F5F4;
+    --ground:   #E9EFED;
+    --surface:  #FCFEFD;
+    --surface-2:#F0F5F3;
     --ink:      #0F1618;
     --ink-2:    #55635F;
     --ink-3:    #7E8C88;
     --rule:     #D3DBD8;
     --rule-2:   #E2E8E6;
-    --accent:   #A2661F;
+    --accent:   #A95F1E;
+    --accent-soft: #F4E8D9;
     --warn:     #B23A2B;
     --ok:       #2C7A54;
 
@@ -28,7 +29,8 @@
     --w-sig:    #C8372A;
     --w-gnd:    #15191B;
 
-    --shadow: 0 1px 2px rgba(15, 22, 24, .05), 0 10px 30px -16px rgba(15, 22, 24, .22);
+    --shadow: 0 2px 4px rgba(15, 22, 24, .04), 0 18px 52px -28px rgba(15, 22, 24, .32);
+    --shadow-lift: 0 22px 70px -32px rgba(15, 22, 24, .38);
   }
 
   @media (prefers-color-scheme: dark) {
@@ -42,6 +44,7 @@
       --rule:     #242E32;
       --rule-2:   #1E2529;
       --accent:   #DFA155;
+      --accent-soft: #342719;
       --warn:     #E8705E;
       --ok:       #52B583;
 
@@ -57,6 +60,7 @@
       --w-gnd:    #AEB9BE;
 
       --shadow: 0 1px 2px rgba(0, 0, 0, .5), 0 10px 30px -16px rgba(0, 0, 0, .8);
+      --shadow-lift: 0 22px 70px -30px rgba(0, 0, 0, .9);
     }
   }
 
@@ -70,6 +74,7 @@
     --rule:     #242E32;
     --rule-2:   #1E2529;
     --accent:   #DFA155;
+    --accent-soft: #342719;
     --warn:     #E8705E;
     --ok:       #52B583;
 
@@ -85,13 +90,16 @@
     --w-gnd:    #AEB9BE;
 
     --shadow: 0 1px 2px rgba(0, 0, 0, .5), 0 10px 30px -16px rgba(0, 0, 0, .8);
+    --shadow-lift: 0 22px 70px -30px rgba(0, 0, 0, .9);
   }
 
   * { box-sizing: border-box; }
 
   body {
     margin: 0;
-    background: var(--ground);
+    background:
+      radial-gradient(circle at 12% 0%, color-mix(in srgb, var(--accent) 10%, transparent), transparent 34rem),
+      linear-gradient(180deg, var(--surface-2) 0, var(--ground) 30rem);
     color: var(--ink);
     font-family: system-ui, -apple-system, "Apple SD Gothic Neo", "Malgun Gothic", sans-serif;
     line-height: 1.7;
@@ -104,20 +112,23 @@
     padding: clamp(24px, 4vw, 56px) clamp(16px, 3.5vw, 36px) 88px;
     display: flex;
     flex-direction: column;
-    gap: clamp(38px, 5vw, 62px);
+    gap: clamp(44px, 6vw, 72px);
   }
 
   /* ---------- 도면 표제란 ---------- */
   .titleblock {
     border: 1px solid var(--rule);
-    border-radius: 3px;
+    border-radius: 24px;
     background: var(--surface);
-    box-shadow: var(--shadow);
+    box-shadow: var(--shadow-lift);
     overflow: hidden;
   }
   .tb-main {
-    padding: clamp(20px, 3vw, 30px) clamp(18px, 3vw, 30px);
+    padding: clamp(28px, 5vw, 52px) clamp(22px, 5vw, 54px);
     display: flex; flex-direction: column; gap: 10px;
+    background:
+      linear-gradient(135deg, color-mix(in srgb, var(--accent-soft) 64%, transparent), transparent 62%),
+      var(--surface);
   }
   .tb-eyebrow {
     margin: 0;
@@ -128,18 +139,18 @@
   .tb-main h1 {
     margin: 0;
     font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
-    font-size: clamp(30px, 5.4vw, 46px);
+    font-size: clamp(34px, 6vw, 58px);
     line-height: 1.04; letter-spacing: -.035em; font-weight: 600;
     text-wrap: balance;
   }
-  .tb-main p { margin: 0; max-width: 60ch; color: var(--ink-2); font-size: clamp(14.5px, 1.5vw, 16px); }
+  .tb-main p { margin: 4px 0 0; max-width: 68ch; color: var(--ink-2); font-size: clamp(14.5px, 1.5vw, 16px); }
   .tb-grid {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
     border-top: 1px solid var(--rule);
   }
   .tb-cell {
-    padding: 13px 18px; border-right: 1px solid var(--rule);
+    padding: 16px 20px; border-right: 1px solid var(--rule);
     display: flex; flex-direction: column; gap: 1px;
   }
   .tb-cell:last-child { border-right: none; }
@@ -156,13 +167,13 @@
   /* ---------- 섹션 ---------- */
   section { display: flex; flex-direction: column; gap: 16px; }
   .sec-head {
-    display: flex; align-items: baseline; gap: 14px;
-    padding-bottom: 10px; border-bottom: 1px solid var(--rule);
+    display: flex; align-items: baseline; gap: 14px; flex-wrap: wrap;
+    padding: 0 4px 12px; border-bottom: 1px solid var(--rule);
   }
   .sec-head h2 {
     margin: 0;
     font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
-    font-size: 13px; font-weight: 600; letter-spacing: .16em; text-transform: uppercase;
+    font-size: 13px; font-weight: 700; letter-spacing: .16em; text-transform: uppercase;
     color: var(--ink);
   }
   .sec-head span { font-size: 13.5px; color: var(--ink-3); }
@@ -171,9 +182,43 @@
   .plate {
     position: relative; overflow-x: auto;
     background: var(--surface); border: 1px solid var(--rule);
-    border-radius: 3px; padding: 10px; box-shadow: var(--shadow);
+    border-radius: 22px; padding: 12px; box-shadow: var(--shadow-lift);
   }
   .plate svg { display: block; width: 100%; min-width: 900px; height: auto; }
+
+  .wiring-toolbar {
+    position: sticky; left: 0; z-index: 2;
+    display: flex; align-items: center; justify-content: space-between; gap: 16px;
+    margin: 2px 2px 10px; padding: 12px 14px;
+    border: 1px solid var(--rule); border-radius: 14px;
+    background: color-mix(in srgb, var(--surface) 92%, transparent);
+    backdrop-filter: blur(12px);
+  }
+  .wire-control-copy { min-width: 150px; }
+  .wire-control-copy strong { display: block; font-size: 13px; line-height: 1.25; }
+  .wire-control-copy span { display: block; margin-top: 2px; color: var(--ink-3); font-size: 11.5px; line-height: 1.35; }
+  .wire-buttons { display: flex; align-items: center; justify-content: flex-end; flex-wrap: wrap; gap: 7px; }
+  .wire-toggle {
+    appearance: none; border: 1px solid var(--rule); border-radius: 999px;
+    color: var(--ink-2); background: var(--surface); cursor: pointer;
+    padding: 7px 11px; display: inline-flex; align-items: center; gap: 7px;
+    font: 650 11.5px/1.1 ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+    box-shadow: 0 2px 8px rgba(15, 22, 24, .05);
+    transition: transform .16s ease, border-color .16s ease, background .16s ease, opacity .16s ease;
+  }
+  .wire-toggle:hover { transform: translateY(-1px); border-color: var(--ink-3); }
+  .wire-toggle:focus-visible { outline: 3px solid color-mix(in srgb, var(--accent) 30%, transparent); outline-offset: 2px; }
+  .wire-toggle[aria-pressed="true"] { color: var(--ink); border-color: color-mix(in srgb, var(--accent) 45%, var(--rule)); background: var(--accent-soft); }
+  .wire-toggle[aria-pressed="false"] { opacity: .52; box-shadow: none; }
+  .wire-dot { width: 9px; height: 9px; border-radius: 50%; background: currentColor; box-shadow: 0 0 0 2px var(--surface); }
+  .wire-dot.green { color: #27945E; }
+  .wire-dot.red { color: #D24639; }
+  .wire-dot.ground { color: var(--w-gnd); }
+  .wire-toggle.all { color: var(--accent); }
+  .wire-count { min-width: 56px; color: var(--ink-3); font: 600 11px/1 ui-monospace, monospace; text-align: right; }
+
+  .led-wire { transition: opacity .24s ease, filter .24s ease; }
+  .led-wire.is-hidden { opacity: 0; filter: blur(1.5px); pointer-events: none; }
 
   .pcb-fill  { fill: var(--pcb); }
   .pcb-line  { fill: none; stroke: var(--pcb-edge); stroke-width: 1.5; }
@@ -237,7 +282,7 @@
 
   /* ---------- 표 ---------- */
   .table-wrap {
-    overflow-x: auto; border: 1px solid var(--rule); border-radius: 3px;
+    overflow-x: auto; border: 1px solid var(--rule); border-radius: 18px;
     background: var(--surface); box-shadow: var(--shadow);
   }
   table { border-collapse: collapse; width: 100%; min-width: 680px; font-size: 14px; }
@@ -269,8 +314,8 @@
   /* ---------- 부품 카드 ---------- */
   .cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 14px; }
   .card {
-    background: var(--surface); border: 1px solid var(--rule); border-radius: 3px;
-    padding: 18px; display: flex; flex-direction: column; gap: 10px;
+    background: var(--surface); border: 1px solid var(--rule); border-radius: 18px;
+    padding: 20px; display: flex; flex-direction: column; gap: 10px;
     box-shadow: var(--shadow);
   }
   .card h3 {
@@ -317,7 +362,7 @@
   .check {
     display: grid; grid-template-columns: 24px 1fr auto; gap: 14px; align-items: center;
     padding: 13px 16px; background: var(--surface);
-    border: 1px solid var(--rule); border-radius: 3px;
+    border: 1px solid var(--rule); border-radius: 14px;
   }
   .check .what { font-size: 14px; }
   .check .what strong { font-weight: 600; }
@@ -342,7 +387,7 @@
 
   /* ---------- 펌웨어 설치 ---------- */
   .flash {
-    background: var(--surface); border: 1px solid var(--rule); border-radius: 3px;
+    background: var(--surface); border: 1px solid var(--rule); border-radius: 18px;
     padding: 22px 24px; box-shadow: var(--shadow);
     display: flex; flex-direction: column; gap: 14px;
   }
@@ -386,6 +431,8 @@
   }
 
   @media (max-width: 620px) {
+    .wiring-toolbar { align-items: flex-start; flex-direction: column; }
+    .wire-buttons { justify-content: flex-start; }
     .note { grid-template-columns: 1fr; gap: 5px; }
     .step { grid-template-columns: 34px 1fr; gap: 12px; }
     .check { grid-template-columns: 24px 1fr; }
@@ -399,6 +446,8 @@
     .plate, .card, .table-wrap, .check, .titleblock { box-shadow: none; }
     .sheet { gap: 30px; padding: 0; }
     section { break-inside: avoid; }
+    .wiring-toolbar { display: none; }
+    .led-wire.is-hidden { opacity: 1; filter: none; }
   }
 </style>
 
@@ -431,8 +480,47 @@
     </div>
 
     <div class="plate">
+      <div class="wiring-toolbar" aria-label="LED 3핀 배선 표시 설정">
+        <div class="wire-control-copy">
+          <strong>LED 3핀 배선 보기</strong>
+          <span>핀별로 눌러 배선을 숨기거나 다시 표시하세요.</span>
+        </div>
+        <div class="wire-buttons">
+          <button class="wire-toggle" type="button" data-wire-toggle="green" aria-pressed="true">
+            <span class="wire-dot green" aria-hidden="true"></span>초록 · GPIO 6
+          </button>
+          <button class="wire-toggle" type="button" data-wire-toggle="ground" aria-pressed="true">
+            <span class="wire-dot ground" aria-hidden="true"></span>공통 · GND
+          </button>
+          <button class="wire-toggle" type="button" data-wire-toggle="red" aria-pressed="true">
+            <span class="wire-dot red" aria-hidden="true"></span>빨강 · GPIO 7
+          </button>
+          <button class="wire-toggle all" type="button" data-wire-toggle="all" aria-pressed="true">전체 숨기기</button>
+          <span class="wire-count" id="wire-count" aria-live="polite">3 / 3 표시</span>
+        </div>
+      </div>
       <svg viewBox="0 0 1260 900" role="img"
            aria-label="ESP32-C3 SuperMini 결선도. GPIO2 부저, GPIO3 청축 스위치, GPIO6·7 2컬러 LED, GPIO8·9 OLED, 3V3 OLED 전원, 하단 공통 GND 레일. 전원은 USB-C.">
+
+        <defs>
+          <linearGradient id="pcb-real" x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0" stop-color="#20282B" />
+            <stop offset="0.48" stop-color="#0D1214" />
+            <stop offset="1" stop-color="#050809" />
+          </linearGradient>
+          <linearGradient id="usb-metal" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0" stop-color="#F1F4F4" />
+            <stop offset="0.5" stop-color="#AAB2B5" />
+            <stop offset="1" stop-color="#737D81" />
+          </linearGradient>
+          <linearGradient id="chip-real" x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0" stop-color="#30383B" />
+            <stop offset="1" stop-color="#111619" />
+          </linearGradient>
+          <filter id="board-shadow" x="-20%" y="-10%" width="140%" height="130%">
+            <feDropShadow dx="0" dy="10" stdDeviation="9" flood-color="#071013" flood-opacity=".28" />
+          </filter>
+        </defs>
 
         <!-- ===== 도면 프레임 모서리 마크 ===== -->
         <g stroke="var(--rule)" stroke-width="1.5" fill="none">
@@ -449,24 +537,76 @@
         <text class="t-lead" x="76" y="206" font-size="12">반원으로 넘는 곳은 닿지 않는다</text>
 
         <!-- ===== 보드 본체 (배선보다 먼저) ===== -->
-        <text class="t-sub" x="620" y="66" text-anchor="middle">USB-C — 전원 · 펌웨어 업로드</text>
-        <rect x="580" y="84" width="80" height="36" rx="5" fill="#BFC5C8" />
-        <rect x="591" y="93" width="58" height="17" rx="8.5" fill="#5F686C" />
+        <text class="t-sub" x="620" y="66" text-anchor="middle">USB-C — 전원 · 네이티브 USB 업로드</text>
 
-        <rect class="pcb-fill" x="500" y="120" width="240" height="570" rx="12" />
-        <rect class="pcb-line" x="500" y="120" width="240" height="570" rx="12" />
+        <!-- 실물 SuperMini처럼: USB-C가 위, 세라믹 안테나가 아래인 검은 PCB -->
+        <g filter="url(#board-shadow)">
+          <rect x="500" y="120" width="240" height="570" rx="18" fill="url(#pcb-real)" />
+          <rect x="506" y="126" width="228" height="558" rx="13" fill="none" stroke="#3C474A" stroke-width="1.5" />
+          <path d="M520 146 H720 M520 668 H720" stroke="#738083" stroke-width="1" opacity=".18" />
+        </g>
 
-        <rect x="578" y="140" width="13" height="38" rx="6.5" fill="var(--pad)" />
-        <rect x="650" y="140" width="13" height="38" rx="6.5" fill="var(--pad)" />
-        <circle cx="592" cy="206" r="5" fill="#2B3338" />
-        <circle cx="648" cy="206" r="5" fill="#2B3338" />
+        <!-- USB-C 리셉터클 -->
+        <g>
+          <path d="M568 90 Q568 82 576 82 H664 Q672 82 672 90 V125 H568Z" fill="url(#usb-metal)" stroke="#697478" stroke-width="1.4" />
+          <rect x="578" y="91" width="84" height="23" rx="11.5" fill="#3D474B" />
+          <rect x="586" y="97" width="68" height="11" rx="5.5" fill="#111719" />
+          <path d="M591 102 H649" stroke="#C4A75C" stroke-width="2" stroke-dasharray="3 3" />
+          <circle cx="575" cy="118" r="3" fill="#5F696D" /><circle cx="665" cy="118" r="3" fill="#5F696D" />
+        </g>
 
-        <rect class="silk-box" x="578" y="438" width="84" height="38" rx="3" />
-        <text x="620" y="463" text-anchor="middle" fill="#14191C"
-              font-family="ui-monospace, Menlo, monospace" font-size="13" font-weight="700">ESP32-C3</text>
-        <rect class="silk-box" x="578" y="488" width="84" height="42" rx="3" />
-        <text x="620" y="514" text-anchor="middle" fill="#6A7276"
-              font-family="ui-monospace, Menlo, monospace" font-size="11">SuperMini</text>
+        <!-- BOOT / RESET 택트 스위치와 상태 LED -->
+        <g>
+          <rect x="543" y="146" width="40" height="30" rx="5" fill="#B7BEC0" stroke="#677175" />
+          <rect x="551" y="152" width="24" height="17" rx="3" fill="#30383B" />
+          <text x="563" y="191" text-anchor="middle" fill="#98A4A6" font-family="ui-monospace, monospace" font-size="9">RST</text>
+          <rect x="657" y="146" width="40" height="30" rx="5" fill="#B7BEC0" stroke="#677175" />
+          <rect x="665" y="152" width="24" height="17" rx="3" fill="#30383B" />
+          <text x="677" y="191" text-anchor="middle" fill="#98A4A6" font-family="ui-monospace, monospace" font-size="9">BOOT</text>
+          <circle cx="620" cy="164" r="7" fill="#44D77D" opacity=".92" />
+          <circle cx="618" cy="162" r="2.2" fill="#E8FFF1" opacity=".9" />
+          <text x="620" y="191" text-anchor="middle" fill="#98A4A6" font-family="ui-monospace, monospace" font-size="9">LED</text>
+        </g>
+
+        <!-- 전원부 · 크리스털 · 수동소자 -->
+        <g>
+          <rect x="548" y="218" width="42" height="28" rx="3" fill="#171D20" stroke="#4B5659" />
+          <text x="569" y="236" text-anchor="middle" fill="#8E999B" font-family="ui-monospace, monospace" font-size="8">LDO</text>
+          <rect x="650" y="221" width="43" height="20" rx="4" fill="#AEB5B5" stroke="#626C6F" />
+          <text x="671.5" y="235" text-anchor="middle" fill="#343B3D" font-family="ui-monospace, monospace" font-size="7">40 MHz</text>
+          <g fill="#C7B073">
+            <rect x="603" y="215" width="13" height="6" rx="2" /><rect x="621" y="215" width="13" height="6" rx="2" />
+            <rect x="600" y="236" width="10" height="5" rx="2" /><rect x="617" y="236" width="10" height="5" rx="2" />
+            <rect x="634" y="236" width="10" height="5" rx="2" /><rect x="551" y="262" width="12" height="6" rx="2" />
+            <rect x="570" y="262" width="12" height="6" rx="2" /><rect x="674" y="261" width="13" height="6" rx="2" />
+          </g>
+        </g>
+
+        <!-- ESP32-C3FN4 QFN 칩 -->
+        <g>
+          <rect x="566" y="292" width="108" height="108" rx="7" fill="url(#chip-real)" stroke="#4A5558" stroke-width="1.5" />
+          <g stroke="#A7AFAD" stroke-width="3">
+            <path d="M574 286v10 M590 286v10 M606 286v10 M622 286v10 M638 286v10 M654 286v10 M670 286v10" />
+            <path d="M574 396v10 M590 396v10 M606 396v10 M622 396v10 M638 396v10 M654 396v10 M670 396v10" />
+            <path d="M560 300h10 M560 316h10 M560 332h10 M560 348h10 M560 364h10 M560 380h10" />
+            <path d="M670 300h10 M670 316h10 M670 332h10 M670 348h10 M670 364h10 M670 380h10" />
+          </g>
+          <circle cx="580" cy="307" r="4" fill="#858F91" />
+          <text x="620" y="338" text-anchor="middle" fill="#E8ECEA" font-family="ui-monospace, Menlo, monospace" font-size="14" font-weight="700">ESP32-C3</text>
+          <text x="620" y="360" text-anchor="middle" fill="#9DA7A8" font-family="ui-monospace, Menlo, monospace" font-size="10">RISC-V · 4MB</text>
+          <text x="620" y="380" text-anchor="middle" fill="#707B7E" font-family="ui-monospace, Menlo, monospace" font-size="8">Wi-Fi · BLE 5</text>
+        </g>
+
+        <!-- 보드 실크와 하단 세라믹 안테나 -->
+        <text x="620" y="446" text-anchor="middle" fill="#D9DFDC" font-family="ui-monospace, Menlo, monospace" font-size="13" font-weight="700" letter-spacing="1.6">C3 SUPERMINI</text>
+        <path d="M551 468 H689" stroke="#D8DEDB" stroke-width="1" opacity=".42" />
+        <g>
+          <rect x="580" y="505" width="80" height="118" rx="7" fill="#D8D1BC" stroke="#A89D7E" stroke-width="2" />
+          <rect x="588" y="514" width="64" height="100" rx="4" fill="#ECE5D0" />
+          <path d="M598 603 V527 H642 V545 H612 V563 H642 V581 H612 V603" fill="none" stroke="#BA9C55" stroke-width="7" stroke-linejoin="round" />
+          <rect x="590" y="616" width="60" height="9" rx="2" fill="#C99E39" />
+          <text x="620" y="646" text-anchor="middle" fill="#98A4A6" font-family="ui-monospace, monospace" font-size="9">2.4 GHz ANTENNA</text>
+        </g>
 
         <!-- ===== 배선 ===== -->
 
@@ -477,7 +617,7 @@
         <!-- J 부저(−) → GND -->
         <path class="w w-gnd" d="M 400,654 L 400,800" />
         <!-- M LED 공통 캐소드 → GND -->
-        <path class="w w-gnd" d="M 1026,310 L 1026,420 L 1200,420 L 1200,800" />
+        <path class="w w-gnd led-wire" data-led-wire="ground" d="M 1026,310 L 1026,420 L 1200,420 L 1200,800" />
         <!-- E OLED GND → GND (B 배선 위를 넘어감) -->
         <path class="w w-gnd" d="M 848,610 L 806,610 L 806,744 A 8,8 0 0 1 806,760 L 806,800" />
 
@@ -491,9 +631,9 @@
         <path class="w w-sig" d="M 524,510 L 400,510 L 400,566" />
 
         <!-- K GPIO6 → LED 초록(+) -->
-        <path class="w w-sig" d="M 716,246 L 940,246 L 940,400 L 1010,400 L 1010,310" />
+        <path class="w w-sig led-wire" data-led-wire="green" d="M 716,246 L 940,246 L 940,400 L 1010,400 L 1010,310" />
         <!-- L GPIO7 → LED 빨강(+) (M 배선 위를 넘어감) -->
-        <path class="w w-sig" d="M 716,312 L 900,312 L 900,460 L 1042,460 L 1042,428 A 8,8 0 0 1 1042,412 L 1042,310" />
+        <path class="w w-sig led-wire" data-led-wire="red" d="M 716,312 L 900,312 L 900,460 L 1042,460 L 1042,428 A 8,8 0 0 1 1042,412 L 1042,310" />
 
         <!-- C GPIO8 → OLED SDA -->
         <path class="w w-sig" d="M 716,378 L 838,378 L 838,530 L 848,530" />
@@ -863,6 +1003,56 @@
 </div>
 
 <script>
+  // LED 3핀 배선을 각각 숨기거나 다시 표시한다. 실제 결선 정보는 건드리지 않고
+  // 도면의 선만 토글하므로 핀 위치와 결선표는 언제나 그대로 남는다.
+  (function () {
+    var names = ['green', 'ground', 'red'];
+    var buttons = Array.from(document.querySelectorAll('[data-wire-toggle]'));
+    var allButton = document.querySelector('[data-wire-toggle="all"]');
+    var count = document.getElementById('wire-count');
+
+    function buttonFor(name) {
+      return document.querySelector('[data-wire-toggle="' + name + '"]');
+    }
+
+    function visible(name) {
+      var button = buttonFor(name);
+      return button && button.getAttribute('aria-pressed') === 'true';
+    }
+
+    function setWire(name, show) {
+      var button = buttonFor(name);
+      var wire = document.querySelector('[data-led-wire="' + name + '"]');
+      if (button) button.setAttribute('aria-pressed', String(show));
+      if (wire) wire.classList.toggle('is-hidden', !show);
+    }
+
+    function refreshAll() {
+      var shown = names.filter(visible).length;
+      var allVisible = shown === names.length;
+      if (allButton) {
+        allButton.setAttribute('aria-pressed', String(allVisible));
+        allButton.textContent = allVisible ? '전체 숨기기' : '전체 표시';
+      }
+      if (count) count.textContent = shown + ' / 3 표시';
+    }
+
+    buttons.forEach(function (button) {
+      button.addEventListener('click', function () {
+        var name = button.dataset.wireToggle;
+        if (name === 'all') {
+          var show = !names.every(visible);
+          names.forEach(function (wireName) { setWire(wireName, show); });
+        } else {
+          setWire(name, !visible(name));
+        }
+        refreshAll();
+      });
+    });
+
+    refreshAll();
+  })();
+
   // Web Serial 미지원 시 한국어 폴백 메시지 노출
   (function () {
     var ok = 'serial' in navigator && window.isSecureContext;
